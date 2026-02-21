@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>とけいのまちの じかんたんてい</title>
   
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
@@ -10,156 +10,175 @@
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
   <style>
-    body { margin: 0; overflow-x: hidden; }
+    /* 全体のスタイル・背景の朝昼夜 */
+    body { margin: 0; overflow-x: hidden; touch-action: manipulation; user-select: none; }
     .app-container {
-      text-align: center;
-      font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', sans-serif;
-      background-color: #f0f8ff;
-      min-height: 100vh;
-      padding: 20px;
-      color: #333;
-      position: relative;
+      text-align: center; font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', sans-serif;
+      min-height: 100vh; padding: 15px; color: #333; transition: background 1s ease;
     }
-    h1, h2 { color: #ff6b6b; text-shadow: 2px 2px 0px #fff; margin-top: 10px; }
-    .status-bar {
-      background: #fff; padding: 10px 20px; border-radius: 20px;
-      display: inline-block; font-size: 24px; font-weight: bold;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px;
-    }
-    .menu-buttons { display: flex; flex-direction: column; gap: 20px; align-items: center; margin-top: 20px; }
-    .btn {
-      background-color: #4ecdc4; color: white; border: none; border-radius: 50px;
-      padding: 15px 40px; font-size: 22px; font-weight: bold; cursor: pointer;
-      box-shadow: 0 5px 0 #3b9b95; transition: all 0.1s; width: 85%; max-width: 400px;
-    }
-    .btn:active { transform: translateY(5px); box-shadow: none; }
-    .btn.orange { background-color: #ff9f43; box-shadow: 0 5px 0 #cc7d30; }
-    .btn.purple { background-color: #a29bfe; box-shadow: 0 5px 0 #6c5ce7; }
-    .btn.gray { background-color: #ccc; box-shadow: 0 5px 0 #999; cursor: not-allowed; }
+    .bg-morning { background: linear-gradient(to bottom, #8ee4af, #edf5e1); }
+    .bg-day { background: linear-gradient(to bottom, #74b9ff, #dfe6e9); }
+    .bg-sunset { background: linear-gradient(to bottom, #ff9ff3, #feca57); }
+    .bg-night { background: linear-gradient(to bottom, #2c3e50, #34495e); color: white; }
     
+    h1 { color: #fff; text-shadow: 0 4px 6px rgba(0,0,0,0.2), 0 0 10px #ff9f43; font-size: 28px; margin-top: 10px; }
+    .status-bar {
+      background: rgba(255,255,255,0.9); padding: 8px 15px; border-radius: 20px; color: #333;
+      display: inline-flex; align-items: center; gap: 15px; font-size: 20px; font-weight: bold;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 15px;
+    }
+    .combo-text { color: #ff4757; animation: bounce 0.5s infinite alternate; }
+
+    /* ホーム画面のオシャレなボタン群 */
+    .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 500px; margin: 0 auto; }
+    .menu-btn {
+      border: none; border-radius: 15px; padding: 15px 5px; font-size: 16px; font-weight: bold;
+      color: white; cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.2); transition: transform 0.1s;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+    }
+    .menu-btn:active { transform: translateY(6px); box-shadow: none; }
+    .btn-easy { background: #78e08f; }
+    .btn-read1 { background: #38ada9; }
+    .btn-read2 { background: #0a3d62; }
+    .btn-move1 { background: #82ccdd; }
+    .btn-move2 { background: #60a3bc; }
+    .btn-attack { background: #e55039; grid-column: span 2; font-size: 18px; }
+    .btn-book { background: #f6b93b; grid-column: span 2; font-size: 18px; color: #333; }
+    .btn-reset { background: #7f8c8d; grid-column: span 2; padding: 10px; font-size: 14px; margin-top: 20px;}
+    
+    /* 時計周り */
     .clock-container {
       margin: 10px auto; width: 220px; height: 220px; background: white;
-      border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.2); position: relative;
     }
     .clock-hand { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .clock-hint { fill: #b2bec3; font-size: 6px; font-weight: bold; }
 
-    .choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; }
-    .choice-btn {
-      background: #fff; border: 3px solid #4ecdc4; color: #333; font-size: 20px;
-      font-weight: bold; padding: 12px 15px; border-radius: 15px; cursor: pointer;
-      width: 140px; box-shadow: 0 4px 0 #4ecdc4;
+    /* UIパーツ */
+    .message-box {
+      background: rgba(255,255,255,0.85); color: #2d3436; padding: 10px; border-radius: 10px;
+      font-size: 18px; font-weight: bold; min-height: 28px; margin-bottom: 10px; max-width: 400px; margin-left: auto; margin-right: auto;
     }
+    .btn-back { background: #ff7f50; color: white; border: none; padding: 10px 30px; border-radius: 20px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 0 #cd6133; margin-top: 20px; cursor: pointer;}
+    .btn-back:active { transform: translateY(4px); box-shadow: none; }
+
+    /* 選択肢・コントロール */
+    .choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .choice-btn { background: #fff; border: 3px solid #4ecdc4; font-size: 20px; font-weight: bold; padding: 10px 15px; border-radius: 15px; cursor: pointer; width: 130px; box-shadow: 0 4px 0 #4ecdc4; }
     .choice-btn:active { transform: translateY(4px); box-shadow: none; }
-
-    .controls { display: flex; justify-content: center; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
-    .control-btn {
-      background: #ffeaa7; border: 2px solid #fdcb6e; color: #d63031;
-      font-size: 18px; font-weight: bold; padding: 10px 15px; border-radius: 10px;
-      cursor: pointer; box-shadow: 0 3px 0 #fdcb6e;
-    }
+    .controls { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+    .control-btn { background: #ffeaa7; border: 2px solid #fdcb6e; color: #d63031; font-size: 16px; font-weight: bold; padding: 8px 10px; border-radius: 10px; cursor: pointer; box-shadow: 0 3px 0 #fdcb6e; }
     .control-btn:active { transform: translateY(3px); box-shadow: none; }
+    .btn-hint { background: #ffeaa7; border: none; border-radius: 15px; padding: 5px 15px; font-weight: bold; box-shadow: 0 3px 0 #fdcb6e; margin-bottom: 10px; cursor: pointer; }
 
-    .notebook {
-      background: #fff9c4; border: 5px solid #ffcc80; border-radius: 10px;
-      padding: 20px; max-width: 500px; margin: 20px auto; min-height: 200px;
-    }
-    .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 10px; margin-top: 20px; }
-    .sticker {
-      font-size: 36px; background: white; border-radius: 50%; width: 50px; height: 50px;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1); animation: pop 0.3s ease-out;
-    }
-    @keyframes pop { 0% { transform: scale(0); } 80% { transform: scale(1.2); } 100% { transform: scale(1); } }
-    .message { font-size: 20px; font-weight: bold; color: #ff6b6b; min-height: 30px; margin: 10px 0; }
+    /* テンキー（Numpad） */
+    .numpad-container { max-width: 300px; margin: 0 auto; background: rgba(255,255,255,0.9); padding: 15px; border-radius: 15px; }
+    .input-display { display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 24px; font-weight: bold; color: #333; }
+    .input-box { width: 60px; height: 40px; border: 3px solid #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: white; cursor: pointer; }
+    .input-box.active { border-color: #ff4757; background: #ffeaa7; }
+    .numpad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .num-key { background: #dfe6e9; border: none; border-radius: 10px; padding: 10px; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 #b2bec3; }
+    .num-key:active { transform: translateY(4px); box-shadow: none; }
+    .num-key.action { background: #74b9ff; color: white; box-shadow: 0 4px 0 #0984e3; }
+    .num-key.submit { background: #00b894; color: white; box-shadow: 0 4px 0 #00b894; grid-column: span 3; }
 
-    .success-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; display: flex; align-items: center; justify-content: center;
-      z-index: 1000; background: rgba(255, 255, 255, 0.6);
-    }
-    .hanamaru {
-      font-size: 180px; text-shadow: 0 0 20px #ffcc80;
-      animation: stamp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
-    @keyframes stamp {
-      0% { transform: scale(5) rotate(-30deg); opacity: 0; }
-      100% { transform: scale(1) rotate(0deg); opacity: 1; }
-    }
+    /* 手帳とシール */
+    .notebook { background: #fff9c4; border: 5px solid #ffcc80; border-radius: 10px; padding: 15px; max-width: 500px; margin: 0 auto; min-height: 200px; }
+    .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); gap: 8px; margin-top: 15px; }
+    .sticker { font-size: 32px; background: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .sticker.N { border: 2px solid #ccc; }
+    .sticker.R { border: 3px solid #c0c0c0; background: linear-gradient(135deg, #f5f7fa, #c3cfe2); box-shadow: 0 0 10px silver; }
+    .sticker.SR { border: 3px solid #ffd700; background: linear-gradient(135deg, #fff9c4, #ffc107); box-shadow: 0 0 15px gold; }
+    .locked-sticker { background: rgba(0,0,0,0.1); font-size: 20px; color: rgba(0,0,0,0.2); border: 2px dashed #ccc; }
+
+    /* ド派手演出 */
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .hanamaru { font-size: 180px; text-shadow: 0 0 20px #ffcc80; animation: stamp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    @keyframes stamp { 0% { transform: scale(5) rotate(-30deg); opacity: 0; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+    @keyframes bounce { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+    
+    /* ガチャ演出用 */
+    .gacha-bg { background: rgba(0,0,0,0.8); pointer-events: auto; flex-direction: column; }
+    .gacha-item { font-size: 120px; animation: stamp 0.8s ease-out forwards; position: relative; }
+    .gacha-item.R::after { content: '✨'; position: absolute; font-size: 60px; top: -20px; right: -20px; animation: spin 3s linear infinite; }
+    .gacha-item.SR::after { content: '🌟'; position: absolute; font-size: 80px; top: -30px; right: -30px; animation: spin 2s linear infinite; }
+    .gacha-title { color: white; font-size: 30px; margin-bottom: 20px; font-weight: bold; text-shadow: 0 0 10px gold; animation: bounce 0.5s infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
-    const STICKER_LIST = [
-      "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", 
-      "🦁", "🐮", "🐷", "🐸", "🐵", "🐧", "🐦", "🐤", "🦉", "🦄",
-      "🍎", "🍌", "🍇", "🍓", "🍉", "🍔", "🍕", "🍩", "🍦", "🍰",
-      "🚗", "🚓", "🚒", "🚑", "🚀", "🛸", "💎", "👑", "⚽️", "🎸"
-    ];
+    // --- 50種類のシールデータ (N:30, R:15, SR:5) ---
+    const ALL_STICKERS = [
+      // Normal (N)
+      "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯",
+      "🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🦆","🦅",
+      "🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌",
+      // Rare (R)
+      "🍎","🍌","🍇","🍓","🍉","🍔","🍕","🍩","🍦","🍰",
+      "🚗","🚓","🚒","🚑","🚀",
+      // Super Rare (SR)
+      "👑","💎","🏆","🐉","👽"
+    ].map((char, i) => {
+      let rarity = 'N';
+      if (i >= 30 && i < 45) rarity = 'R';
+      if (i >= 45) rarity = 'SR';
+      return { id: i, char, rarity };
+    });
 
-    // --- 音を鳴らすための仕組み (Web Audio API) ---
+    // --- Web Audio API (音) ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx;
-
-    // 基本の音作り関数
-    const playTone = (freq, type, duration, startTimeOffset) => {
+    const playTone = (freq, type, duration, startTimeOffset, vol=0.1) => {
       if (!audioCtx) audioCtx = new AudioContext();
       if (audioCtx.state === 'suspended') audioCtx.resume();
-      
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + startTimeOffset);
-      
-      // 音量を少しずつ下げて自然に消えるようにする
-      gain.gain.setValueAtTime(0.1, audioCtx.currentTime + startTimeOffset);
+      osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime + startTimeOffset);
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime + startTimeOffset);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTimeOffset + duration);
-      
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      
-      osc.start(audioCtx.currentTime + startTimeOffset);
-      osc.stop(audioCtx.currentTime + startTimeOffset + duration);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(audioCtx.currentTime + startTimeOffset); osc.stop(audioCtx.currentTime + startTimeOffset + duration);
     };
 
-    // 用途別の効果音
     const sounds = {
-      click: () => {
-        playTone(800, 'sine', 0.05, 0); // ピッ
+      click: () => playTone(800, 'sine', 0.05, 0),
+      tick: () => playTone(1200, 'square', 0.02, 0, 0.05),
+      correct: () => { playTone(523.25, 'sine', 0.1, 0); playTone(659.25, 'sine', 0.1, 0.1); playTone(783.99, 'sine', 0.3, 0.2); },
+      wrong: () => { playTone(150, 'sawtooth', 0.3, 0); playTone(150, 'sawtooth', 0.3, 0.4); },
+      gachaN: () => { playTone(440, 'square', 0.1, 0); playTone(554.37, 'square', 0.1, 0.1); playTone(659.25, 'square', 0.3, 0.2); },
+      gachaSR: () => { 
+        [523, 587, 659, 698, 783, 880, 987, 1046].forEach((f, i) => playTone(f, 'sine', 0.1, i*0.05));
+        playTone(1046, 'square', 0.5, 0.4); 
       },
-      correct: () => {
-        playTone(523.25, 'sine', 0.1, 0);      // ド
-        playTone(659.25, 'sine', 0.1, 0.1);    // ミ
-        playTone(783.99, 'sine', 0.3, 0.2);    // ソ
-      },
-      wrong: () => {
-        playTone(150, 'sawtooth', 0.3, 0);     // ブッ
-        playTone(150, 'sawtooth', 0.3, 0.4);   // ブー
-      },
-      gacha: () => {
-        playTone(440, 'square', 0.1, 0);       // ラ
-        playTone(554.37, 'square', 0.1, 0.1);  // ド#
-        playTone(659.25, 'square', 0.1, 0.2);  // ミ
-        playTone(880, 'square', 0.4, 0.3);     // 高いラ
-      }
+      timeAttack: () => playTone(880, 'sine', 0.1, 0)
     };
-    // ------------------------------------------
 
+    // --- 補助関数 ---
     const calcTime = (totalMinutes) => {
-      while (totalMinutes < 0) totalMinutes += 12 * 60;
-      const h = Math.floor(totalMinutes / 60) % 12;
+      while (totalMinutes < 0) totalMinutes += 24 * 60;
+      const h24 = Math.floor(totalMinutes / 60) % 24;
+      const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
       const m = totalMinutes % 60;
-      return { hour: h === 0 ? 12 : h, minute: m };
+      return { h12, h24, m };
     };
 
-    const Clock = ({ totalMinutes }) => {
+    const getBgClass = (totalMinutes) => {
+      const { h24 } = calcTime(totalMinutes);
+      if (h24 >= 5 && h24 < 9) return 'bg-morning';
+      if (h24 >= 9 && h24 < 16) return 'bg-day';
+      if (h24 >= 16 && h24 < 19) return 'bg-sunset';
+      return 'bg-night';
+    };
+
+    // --- コンポーネント ---
+    const Clock = ({ totalMinutes, showHint }) => {
       const hourAngle = totalMinutes * 0.5;
       const minuteAngle = totalMinutes * 6;
-
       return (
         <div className="clock-container">
           <svg viewBox="0 0 100 100" width="100%" height="100%">
@@ -167,230 +186,410 @@
             {[...Array(12)].map((_, i) => {
               const num = i + 1;
               const angle = (num * 30 - 90) * (Math.PI / 180);
-              const x = 50 + 35 * Math.cos(angle);
-              const y = 50 + 35 * Math.sin(angle);
+              const x = 50 + 32 * Math.cos(angle);
+              const y = 50 + 32 * Math.sin(angle);
               return <text key={num} x={x} y={y} fontSize="10" fill="#ff6b6b" fontWeight="bold" textAnchor="middle" dominantBaseline="central">{num}</text>;
+            })}
+            {showHint && [...Array(12)].map((_, i) => {
+              const num = i === 0 ? 60 : i * 5;
+              const angle = (i * 30 - 90) * (Math.PI / 180);
+              const x = 50 + 44 * Math.cos(angle);
+              const y = 50 + 44 * Math.sin(angle);
+              return <text key={`h-${num}`} x={x} y={y} className="clock-hint" textAnchor="middle" dominantBaseline="central">{num}</text>;
             })}
             {[...Array(60)].map((_, i) => {
               if (i % 5 === 0) return null;
               const angle = (i * 6 - 90) * (Math.PI / 180);
-              const x = 50 + 44 * Math.cos(angle);
-              const y = 50 + 44 * Math.sin(angle);
-              return <circle key={`dot-${i}`} cx={x} cy={y} r="0.5" fill="#a0d2eb" />;
+              return <circle key={`dot-${i}`} cx={50 + 42 * Math.cos(angle)} cy={50 + 42 * Math.sin(angle)} r="0.5" fill="#a0d2eb" />;
             })}
-            <line className="clock-hand" x1="50" y1="50" x2="50" y2="25" stroke="#ff6b6b" strokeWidth="4" strokeLinecap="round" transform={`rotate(${hourAngle} 50 50)`} />
-            <line className="clock-hand" x1="50" y1="50" x2="50" y2="15" stroke="#4ecdc4" strokeWidth="3" strokeLinecap="round" transform={`rotate(${minuteAngle} 50 50)`} />
+            <line className="clock-hand" x1="50" y1="50" x2="50" y2="28" stroke="#ff6b6b" strokeWidth="4" strokeLinecap="round" transform={`rotate(${hourAngle} 50 50)`} />
+            <line className="clock-hand" x1="50" y1="50" x2="50" y2="16" stroke="#4ecdc4" strokeWidth="3" strokeLinecap="round" transform={`rotate(${minuteAngle} 50 50)`} />
             <circle cx="50" cy="50" r="3" fill="#333" />
           </svg>
         </div>
       );
     };
 
+    const Numpad = ({ onSubmit }) => {
+      const [activeField, setActiveField] = useState('H');
+      const [h, setH] = useState('');
+      const [m, setM] = useState('');
+
+      const handleKey = (key) => {
+        sounds.tick();
+        if (key === 'C') {
+          if (activeField === 'H') setH(''); else setM('');
+          return;
+        }
+        if (activeField === 'H') {
+          const newVal = h + key;
+          if (parseInt(newVal) <= 12) setH(newVal);
+          if (newVal.length >= 1 || parseInt(newVal) > 1) setActiveField('M'); // 自動移動
+        } else {
+          const newVal = m + key;
+          if (parseInt(newVal) <= 59) setM(newVal);
+        }
+      };
+
+      return (
+        <div className="numpad-container">
+          <div className="input-display">
+            <div className={`input-box ${activeField === 'H' ? 'active' : ''}`} onClick={() => setActiveField('H')}>{h}</div> じ
+            <div className={`input-box ${activeField === 'M' ? 'active' : ''}`} onClick={() => setActiveField('M')}>{m}</div> ふん
+          </div>
+          <div className="numpad-grid">
+            {[1,2,3,4,5,6,7,8,9].map(n => <button key={n} className="num-key" onClick={() => handleKey(n)}>{n}</button>)}
+            <button className="num-key action" onClick={() => handleKey('C')}>C</button>
+            <button className="num-key" onClick={() => handleKey(0)}>0</button>
+            <button className="num-key action" onClick={() => setActiveField(activeField === 'H'?'M':'H')}>→</button>
+            <button className="num-key submit" onClick={() => onSubmit(parseInt(h||0), parseInt(m||0))}>これだ！</button>
+          </div>
+        </div>
+      );
+    };
+
+    // --- メインアプリ ---
     function App() {
+      // 状態管理
       const [view, setView] = useState('home');
+      const [bgMode, setBgMode] = useState('bg-day');
       const [gears, setGears] = useState(() => parseInt(localStorage.getItem('gears')) || 0);
-      const [stickers, setStickers] = useState(() => JSON.parse(localStorage.getItem('stickers')) || []);
+      const [unlockedStickers, setUnlockedStickers] = useState(() => JSON.parse(localStorage.getItem('unlockedStickers')) || []);
+      const [combo, setCombo] = useState(0);
+      const [mistakes, setMistakes] = useState(0);
       
+      // ゲームプレイ用状態
+      const [modeParams, setModeParams] = useState(null);
       const [question, setQuestion] = useState(null);
       const [message, setMessage] = useState('');
-      const [mistakeCount, setMistakeCount] = useState(0);
       const [showSuccess, setShowSuccess] = useState(false);
-      const [interactiveMinutes, setInteractiveMinutes] = useState(0);
+      const [showHint, setShowHint] = useState(false);
+      const [interactiveMins, setInteractiveMins] = useState(0);
+      const [gachaResult, setGachaResult] = useState(null);
+      
+      // タイムアタック用
+      const [timeLeft, setTimeLeft] = useState(0);
+      const [score, setScore] = useState(0);
+      const timerRef = useRef(null);
 
+      // 保存
       useEffect(() => {
         localStorage.setItem('gears', gears);
-        localStorage.setItem('stickers', JSON.stringify(stickers));
-      }, [gears, stickers]);
+        localStorage.setItem('unlockedStickers', JSON.stringify(unlockedStickers));
+      }, [gears, unlockedStickers]);
 
-      const triggerSuccess = () => {
-        sounds.correct(); // 正解音を鳴らす
+      // 時間ごとの背景更新
+      useEffect(() => {
+        if (view === 'home' || view === 'notebook') setBgMode('bg-day');
+        else if (question) setBgMode(getBgClass(question.displayMinutes));
+      }, [view, question]);
+
+      // 💮演出
+      const triggerSuccess = (isCombo) => {
+        sounds.correct();
         setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 1500);
+        setTimeout(() => setShowSuccess(false), 1200);
       };
 
-      // ---------------- モード1 ----------------
-      const generateReadQuestion = () => {
-        const totalMin = Math.floor(Math.random() * 12) * 60 + Math.floor(Math.random() * 12) * 5;
-        const correctTime = calcTime(totalMin);
-        const correctAns = `${correctTime.hour}じ ${correctTime.minute}ふん`;
-        
-        const wrongTime1 = calcTime(totalMin + 15);
-        const wrongTime2 = calcTime(totalMin + 60);
-        const choices = [
-          correctAns,
-          `${wrongTime1.hour}じ ${wrongTime1.minute}ふん`,
-          `${wrongTime2.hour}じ ${correctTime.minute}ふん`
-        ].sort(() => Math.random() - 0.5);
-        
-        setQuestion({ totalMinutes: totalMin, correct: correctAns, choices });
-        setMessage('なんじ なんぷん かな？');
-      };
-
-      const startReadGame = () => {
-        sounds.click();
-        setMistakeCount(0);
-        generateReadQuestion();
-        setView('game-read');
-      };
-
-      const handleReadAnswer = (choice) => {
-        if (choice === question.correct) {
-          setMessage('大せいかい！ はぐるまゲット！ ⚙️');
-          triggerSuccess();
-          setGears(g => g + 1);
-          setMistakeCount(0);
-          setTimeout(() => generateReadQuestion(), 1500);
+      // はぐるま増減とコンボ処理
+      const addReward = (amount) => {
+        let earned = amount;
+        const newCombo = combo + 1;
+        setCombo(newCombo);
+        if (newCombo > 0 && newCombo % 3 === 0) {
+          earned += 1;
+          setMessage(`大せいかい！🔥3コンボボーナス！ (+${earned}⚙️)`);
         } else {
-          sounds.wrong(); // 不正解音を鳴らす
-          const newMistakes = mistakeCount + 1;
-          if (newMistakes >= 3) {
-            setGears(g => Math.max(0, g - 1));
-            setMistakeCount(0);
-            setMessage('3かい まちがえた！ はぐるま1こ ぼっしゅう 😭 べつのもんだいにするね');
-          } else {
-            setMistakeCount(newMistakes);
-            setMessage(`ざんねん！ちがうもんだいにするよ (${newMistakes}かい ミス)`);
-          }
-          setTimeout(() => generateReadQuestion(), 2000);
+          setMessage(`大せいかい！ (+${earned}⚙️)`);
+        }
+        setGears(g => g + earned);
+        triggerSuccess();
+      };
+
+      const handleMistake = () => {
+        sounds.wrong();
+        setCombo(0);
+        const newMistakes = mistakes + 1;
+        if (newMistakes >= 3 && view !== 'time-attack') {
+          setGears(g => Math.max(0, g - 1));
+          setMistakes(0);
+          setMessage('3かいミス… ⚙️1こ ぼっしゅう😭 べつのもんだいにするね');
+          setTimeout(() => generateQuestion(modeParams), 2000);
+        } else {
+          setMistakes(newMistakes);
+          setMessage(`ざんねん！ (${newMistakes}かい ミス)`);
         }
       };
 
-      // ---------------- モード2 ----------------
-      const generateMoveQuestion = () => {
-        const startTotalMin = Math.floor(Math.random() * 12) * 60 + (Math.floor(Math.random() * 4) * 15);
-        const offsets = [10, 15, 20, 30, 60, -10, -15, -20, -30, -60];
-        const offset = offsets[Math.floor(Math.random() * offsets.length)];
-        const targetTotalMin = startTotalMin + offset;
-        
-        setQuestion({ startTotal: startTotalMin, offset: offset, targetTotal: targetTotalMin });
-        setInteractiveMinutes(startTotalMin);
-        
-        let offsetText = offset > 0 ? `${offset}ぷん ご` : `${Math.abs(offset)}ぷん まえ`;
-        if(offset === 60) offsetText = "1じかん ご";
-        if(offset === -60) offsetText = "1じかん まえ";
+      // --- 問題生成 ---
+      const generateQuestion = (params) => {
+        setShowHint(false);
+        const { type, lv } = params;
+        let q = { displayMinutes: 0 };
+        const h = Math.floor(Math.random() * 12) + 1; // 1-12
 
-        const startTime = calcTime(startTotalMin);
-        setMessage(`いまは ${startTime.hour}じ ${startTime.minute}ふん。「${offsetText}」は なんじ？`);
-      };
-
-      const startMoveGame = () => {
-        sounds.click();
-        setMistakeCount(0);
-        generateMoveQuestion();
-        setView('game-move');
-      };
-
-      const moveClock = (minutes) => {
-        sounds.click(); // 時計を動かす音を鳴らす
-        setInteractiveMinutes(prev => prev + minutes);
-      };
-
-      const checkMoveAnswer = () => {
-        const isCorrect = (interactiveMinutes % 720 + 720) % 720 === (question.targetTotal % 720 + 720) % 720;
-        
-        if (isCorrect) {
-          triggerSuccess();
-          setMessage('大せいかい！ タイムトラベル せいこう！ ⚙️ゲット！');
-          setGears(g => g + 1);
-          setMistakeCount(0);
-          setTimeout(() => generateMoveQuestion(), 1500);
-        } else {
-          sounds.wrong(); // 不正解音を鳴らす
-          const newMistakes = mistakeCount + 1;
-          if (newMistakes >= 3) {
-            setGears(g => Math.max(0, g - 1));
-            setMistakeCount(0);
-            setMessage('3かい まちがえた！ はぐるま1こ ぼっしゅう 😭 べつのじだいへ いくよ');
-            setTimeout(() => generateMoveQuestion(), 2000);
-          } else {
-            setMistakeCount(newMistakes);
-            setMessage(`おしい！ もうすこし ぐるぐるしてみよう (${newMistakes}かい ミス)`);
+        if (type === 'read') {
+          let m = 0;
+          if (lv === 0) m = Math.random() < 0.5 ? 0 : 30;
+          else m = Math.floor(Math.random() * 12) * 5;
+          
+          const totalM = h * 60 + m;
+          q.displayMinutes = totalM;
+          q.correctH = calcTime(totalM).h12;
+          q.correctM = calcTime(totalM).m;
+          
+          if (lv === 0 || lv === 1) {
+            const wrong1 = calcTime(totalM + (lv===0?30:15));
+            const wrong2 = calcTime(totalM + 60);
+            q.choices = [
+              { h: q.correctH, m: q.correctM },
+              { h: wrong1.h12, m: wrong1.m },
+              { h: wrong2.h12, m: q.correctM }
+            ].sort(() => Math.random() - 0.5);
           }
+          setMessage(lv === 0 ? 'なんじ なんぷん？(やさしい)' : 'なんじ なんぷん かな？');
+        } 
+        else if (type === 'move') {
+          const startTotal = h * 60 + (Math.floor(Math.random() * 4) * 15);
+          const offsets = [10, 15, 20, 30, 60, -10, -15, -20, -30, -60];
+          const offset = offsets[Math.floor(Math.random() * offsets.length)];
+          q.displayMinutes = startTotal;
+          q.offset = offset;
+          q.targetTotal = startTotal + offset;
+          q.correctH = calcTime(q.targetTotal).h12;
+          q.correctM = calcTime(q.targetTotal).m;
+          setInteractiveMins(startTotal);
+          
+          const st = calcTime(startTotal);
+          let text = offset > 0 ? `${offset}ぷん ご` : `${Math.abs(offset)}ぷん まえ`;
+          if(offset === 60) text = "1じかん ご"; if(offset === -60) text = "1じかん まえ";
+          setMessage(`いま ${st.h12}じ${st.m}ふん。「${text}」は なんじ？`);
+        }
+
+        setQuestion(q);
+      };
+
+      const startGame = (type, lv, reward) => {
+        sounds.click();
+        const params = { type, lv, reward };
+        setModeParams(params);
+        setMistakes(0);
+        setCombo(0);
+        generateQuestion(params);
+        setView('game');
+      };
+
+      // --- 回答チェック ---
+      const checkReadLv1 = (ansH, ansM) => {
+        if (ansH === question.correctH && ansM === question.correctM) {
+          addReward(modeParams.reward);
+          setMistakes(0);
+          setTimeout(() => generateQuestion(modeParams), 1500);
+        } else handleMistake();
+      };
+
+      const checkNumpad = (h, m) => {
+        if (h === question.correctH && m === question.correctM) {
+          addReward(modeParams.reward);
+          setMistakes(0);
+          setTimeout(() => generateQuestion(modeParams), 1500);
+        } else handleMistake();
+      };
+
+      const checkMoveLv1 = () => {
+        if ((interactiveMins % 720 + 720) % 720 === (question.targetTotal % 720 + 720) % 720) {
+          addReward(modeParams.reward);
+          setMistakes(0);
+          setTimeout(() => generateQuestion(modeParams), 1500);
+        } else handleMistake();
+      };
+
+      const useHint = () => {
+        if (gears >= 1 && !showHint) {
+          sounds.click(); setGears(g => g - 1); setShowHint(true);
         }
       };
 
-      // ---------------- ガチャ ----------------
-      const spinGacha = () => {
-        if (gears >= 10) {
-          sounds.gacha(); // ガチャの音を鳴らす
-          setGears(g => g - 10);
-          const randomSticker = STICKER_LIST[Math.floor(Math.random() * STICKER_LIST.length)];
-          setStickers([...stickers, randomSticker]);
-          setMessage(`「${randomSticker}」が でたよ！`);
+      // --- タイムアタック ---
+      const startTimeAttack = () => {
+        sounds.click();
+        setView('time-attack');
+        setScore(0); setTimeLeft(60); setCombo(0);
+        generateQuestion({ type: 'read', lv: 1, reward: 0 }); // TA中は報酬は最後に計算
+        
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+          setTimeLeft(t => {
+            if (t <= 1) {
+              clearInterval(timerRef.current);
+              sounds.gachaSR(); // 終了音
+              return 0;
+            }
+            if (t <= 10) sounds.timeAttack(); // 焦る音
+            return t - 1;
+          });
+        }, 1000);
+      };
+
+      const handleTaAnswer = (h, m) => {
+        if (h === question.correctH && m === question.correctM) {
+          sounds.correct(); setScore(s => s + 1);
+          generateQuestion({ type: 'read', lv: 1, reward: 0 });
         } else {
           sounds.wrong();
         }
       };
 
-      return (
-        <div className="app-container">
-          {showSuccess && <div className="success-overlay"><div className="hanamaru">💮</div></div>}
+      // --- ガチャ ---
+      const spinGacha = () => {
+        if (gears >= 10) {
+          setGears(g => g - 10);
+          const r = Math.random();
+          let targetRarity = 'N';
+          if (r > 0.7 && r <= 0.95) targetRarity = 'R';
+          if (r > 0.95) targetRarity = 'SR';
+          
+          const pool = ALL_STICKERS.filter(s => s.rarity === targetRarity);
+          const sticker = pool[Math.floor(Math.random() * pool.length)];
+          
+          if (!unlockedStickers.includes(sticker.id)) {
+            setUnlockedStickers([...unlockedStickers, sticker.id]);
+          }
+          
+          if (targetRarity === 'SR') sounds.gachaSR();
+          else sounds.gachaN();
+          
+          setGachaResult(sticker);
+        } else sounds.wrong();
+      };
 
-          <div className="status-bar">⚙️ はぐるま: {gears}こ</div>
+      const resetGame = () => {
+        if(confirm("ほんとうに データを ぜんぶ けしますか？")) {
+          localStorage.clear();
+          setGears(0); setUnlockedStickers([]);
+          sounds.click();
+        }
+      };
+
+      // 画面の描画
+      return (
+        <div className={`app-container ${bgMode}`}>
+          {showSuccess && <div className="overlay"><div className="hanamaru">💮</div></div>}
+          
+          {/* ガチャド派手演出 */}
+          {gachaResult && (
+            <div className="overlay gacha-bg">
+              <div className="gacha-title">{gachaResult.rarity === 'SR' ? '超・大アタリ！！' : gachaResult.rarity === 'R' ? '大アタリ！' : 'シールゲット！'}</div>
+              <div className={`sticker gacha-item ${gachaResult.rarity}`}>{gachaResult.char}</div>
+              <button className="btn-back" style={{marginTop: '50px', position:'relative', zIndex:10}} onClick={() => {sounds.click(); setGachaResult(null);}}>とじる</button>
+            </div>
+          )}
+
+          <div className="status-bar">
+            ⚙️ {gears}こ {combo > 1 && <span className="combo-text">🔥{combo}連勝!</span>}
+          </div>
           
           {view === 'home' && (
             <div>
               <h1>じかんたんてい</h1>
-              <div className="menu-buttons">
-                <button className="btn" onClick={startReadGame}>① とけいを よむ</button>
-                <button className="btn purple" onClick={startMoveGame}>② タイムトラベル (なんぷんご？)</button>
-                <button className="btn orange" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>シールてちょう</button>
+              <div className="menu-grid">
+                <button className="menu-btn btn-easy" onClick={() => startGame('read', 0, 1)}>🐣 やさしい<br/><small>(⚙️1)</small></button>
+                <button className="menu-btn btn-read1" onClick={() => startGame('read', 1, 1)}>🥉 よむ Lv1<br/><small>(3択/⚙️1)</small></button>
+                <button className="menu-btn btn-read2" onClick={() => startGame('read', 2, 2)}>🥈 よむ Lv2<br/><small>(数字/⚙️2)</small></button>
+                <button className="menu-btn btn-move1" onClick={() => startGame('move', 1, 3)}>🥇 トラベル Lv1<br/><small>(時計/⚙️3)</small></button>
+                <button className="menu-btn btn-move2" onClick={() => startGame('move', 2, 4)}>🏆 トラベル Lv2<br/><small>(数字/⚙️4)</small></button>
+                <button className="menu-btn btn-attack" onClick={startTimeAttack}>⏰ タイムアタック</button>
+                <button className="menu-btn btn-book" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>📖 シールてちょう ({unlockedStickers.length}/50)</button>
+                <button className="menu-btn btn-reset" onClick={resetGame}>さいしょから (リセット)</button>
               </div>
             </div>
           )}
 
-          {view === 'game-read' && question && (
+          {view === 'game' && question && (
             <div>
-              <h2>いま なんじ？</h2>
-              <div className="message">{message}</div>
-              <Clock totalMinutes={question.totalMinutes} />
-              <div className="choices">
-                {question.choices.map((choice, i) => (
-                  <button key={i} className="choice-btn" onClick={() => handleReadAnswer(choice)}>{choice}</button>
-                ))}
-              </div>
-              <div style={{ marginTop: '20px' }}>
-                <button className="btn orange" style={{ fontSize: '18px', padding: '10px 20px' }} onClick={() => { sounds.click(); setView('home'); }}>もどる</button>
-              </div>
+              <div className="message-box">{message}</div>
+              
+              {/* 時計エリア */}
+              <Clock totalMinutes={modeParams.type === 'move' ? interactiveMins : question.displayMinutes} showHint={showHint} />
+              
+              {/* 時計を動かすボタン (トラベルモード用) */}
+              {modeParams.type === 'move' && (
+                <div className="controls">
+                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-60); }}>⏪ 1じかん</button>
+                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-5); }}>◁ 5ふん</button>
+                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p+5); }}>5ふん ▷</button>
+                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p+60); }}>1じかん ⏩</button>
+                </div>
+              )}
+
+              {/* お助けヒント */}
+              {!showHint && gears >= 1 && (
+                <button className="btn-hint" onClick={useHint}>💡ヒントをみる (⚙️1)</button>
+              )}
+
+              {/* 回答エリア */}
+              {(modeParams.lv === 0 || modeParams.lv === 1) && modeParams.type === 'read' && (
+                <div className="choices">
+                  {question.choices.map((c, i) => (
+                    <button key={i} className="choice-btn" onClick={() => checkReadLv1(c.h, c.m)}>{c.h}じ {c.m}ふん</button>
+                  ))}
+                </div>
+              )}
+              
+              {modeParams.type === 'move' && modeParams.lv === 1 && (
+                <button className="choice-btn" style={{width: '200px', background: '#ffeaa7'}} onClick={checkMoveLv1}>これだ！</button>
+              )}
+
+              {modeParams.lv === 2 && (
+                <Numpad onSubmit={checkNumpad} />
+              )}
+
+              <div><button className="btn-back" onClick={() => { sounds.click(); setView('home'); }}>もどる</button></div>
             </div>
           )}
 
-          {view === 'game-move' && question && (
+          {view === 'time-attack' && question && (
             <div>
-              <h2>タイムトラベル！</h2>
-              <div className="message" style={{ fontSize: '18px' }}>{message}</div>
-              <Clock totalMinutes={interactiveMinutes} />
-              <div className="controls">
-                <button className="control-btn" onClick={() => moveClock(-60)}>⏪ 1じかん</button>
-                <button className="control-btn" onClick={() => moveClock(-5)}>◁ 5ふん</button>
-                <button className="control-btn" onClick={() => moveClock(5)}>5ふん ▷</button>
-                <button className="control-btn" onClick={() => moveClock(60)}>1じかん ⏩</button>
-              </div>
-              <div style={{ marginTop: '20px' }}>
-                <button className="btn" onClick={checkMoveAnswer} style={{ width: '100%', maxWidth: '250px' }}>これだ！</button>
-              </div>
-              <div style={{ marginTop: '20px' }}>
-                <button className="btn orange" style={{ fontSize: '18px', padding: '10px 20px' }} onClick={() => { sounds.click(); setView('home'); }}>もどる</button>
-              </div>
+              <div className="message-box" style={{color: timeLeft <= 10 ? 'red' : 'inherit'}}>のこり: {timeLeft}びょう / せいかい: {score}</div>
+              {timeLeft > 0 ? (
+                <>
+                  <Clock totalMinutes={question.displayMinutes} />
+                  <div className="choices" style={{marginTop:'20px'}}>
+                    {question.choices.map((c, i) => (
+                      <button key={i} className="choice-btn" onClick={() => handleTaAnswer(c.h, c.m)}>{c.h}じ {c.m}ふん</button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div style={{padding: '30px', background: 'rgba(255,255,255,0.9)', borderRadius: '20px', marginTop: '20px'}}>
+                  <h2 style={{color: '#e55039'}}>タイムアップ！</h2>
+                  <p style={{fontSize: '24px'}}>きろく： {score} もん</p>
+                  <p style={{fontSize: '20px', color: '#f39c12', fontWeight:'bold'}}>ごほうび ⚙️{score}こ ゲット！</p>
+                  <button className="btn-back" onClick={() => { sounds.click(); setGears(g => g + score); setView('home'); }}>ホームへもどる</button>
+                </div>
+              )}
+              {timeLeft > 0 && <div><button className="btn-back" onClick={() => { sounds.click(); clearInterval(timerRef.current); setView('home'); }}>やめる</button></div>}
             </div>
           )}
 
           {view === 'notebook' && (
             <div>
-              <h2>たんてい シールてちょう</h2>
-              <div className="message">{message}</div>
-              <button className={`btn ${gears < 10 ? 'gray' : ''}`} onClick={spinGacha} disabled={gears < 10}>
-                {gears >= 10 ? 'ガチャをまわす (⚙️10こ)' : 'はぐるまが たりないよ'}
+              <h2 style={{color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.5)'}}>シールてちょう</h2>
+              <button className="choice-btn" style={{width: '250px', marginBottom: '15px'}} onClick={spinGacha} disabled={gears < 10}>
+                {gears >= 10 ? 'ガチャをまわす(⚙️10)' : '⚙️が たりないよ'}
               </button>
               <div className="notebook">
-                <p>あつめたシール: {stickers.length}まい</p>
+                <p style={{margin: '0 0 10px 0', fontWeight: 'bold'}}>あつめた数: {unlockedStickers.length} / 50</p>
                 <div className="sticker-grid">
-                  {stickers.map((sticker, i) => <div key={i} className="sticker">{sticker}</div>)}
+                  {ALL_STICKERS.map((s) => {
+                    const isUnlocked = unlockedStickers.includes(s.id);
+                    return isUnlocked ? 
+                      (<div key={s.id} className={`sticker ${s.rarity}`}>{s.char}</div>) : 
+                      (<div key={s.id} className="sticker locked-sticker">?</div>);
+                  })}
                 </div>
               </div>
-              <div style={{ marginTop: '20px' }}>
-                <button className="btn orange" style={{ fontSize: '18px', padding: '10px 20px' }} onClick={() => { sounds.click(); setView('home'); }}>もどる</button>
-              </div>
+              <div><button className="btn-back" onClick={() => { sounds.click(); setView('home'); }}>もどる</button></div>
             </div>
           )}
         </div>
