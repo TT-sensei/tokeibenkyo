@@ -42,7 +42,8 @@
     .btn-read2 { background: #0a3d62; }
     .btn-move1 { background: #82ccdd; }
     .btn-move2 { background: #60a3bc; }
-    .btn-attack { background: #e55039; grid-column: span 2; font-size: 18px; }
+    .btn-ta-read { background: #e55039; grid-column: span 2; font-size: 18px; }
+    .btn-ta-move { background: #9b59b6; grid-column: span 2; font-size: 18px; }
     .btn-book { background: #f6b93b; grid-column: span 2; font-size: 18px; color: #333; }
     .btn-reset { background: #7f8c8d; grid-column: span 2; padding: 10px; font-size: 14px; margin-top: 20px;}
     
@@ -58,6 +59,9 @@
     .message-box {
       background: rgba(255,255,255,0.85); color: #2d3436; padding: 10px; border-radius: 10px;
       font-size: 18px; font-weight: bold; min-height: 28px; margin-bottom: 10px; max-width: 400px; margin-left: auto; margin-right: auto;
+    }
+    .ta-question {
+      background: #ffeaa7; color: #d63031; border: 3px solid #fdcb6e; font-size: 22px; padding: 15px;
     }
     .btn-back { background: #ff7f50; color: white; border: none; padding: 10px 30px; border-radius: 20px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 0 #cd6133; margin-top: 20px; cursor: pointer;}
     .btn-back:active { transform: translateY(4px); box-shadow: none; }
@@ -326,7 +330,6 @@
         triggerSuccess();
       };
 
-      // 修正4：間違えた時に問題文が消えないように変更
       const handleMistake = () => {
         sounds.wrong();
         setCombo(0);
@@ -338,7 +341,6 @@
           setTimeout(() => generateQuestion(modeParams), 2000);
         } else {
           setMistakes(newMistakes);
-          // 問題文（question.text）を消さずに、後ろに失敗メッセージを繋げる
           setMessage(`${question.text} ❌ざんねん!(${newMistakes}ミス)`);
         }
       };
@@ -437,11 +439,20 @@
         }
       };
 
-      const startTimeAttack = () => {
+      // 修正: タイムアタックを2種類（よむ・トラベル）に対応
+      const startTimeAttack = (taType) => {
         sounds.click();
         setView('time-attack');
-        setScore(0); setTimeLeft(60); setCombo(0);
-        generateQuestion({ type: 'read', lv: 2, reward: 0 }); 
+        setScore(0);
+        setCombo(0);
+        
+        // よむ=60秒、トラベル=90秒
+        const initialTime = taType === 'move' ? 90 : 60;
+        setTimeLeft(initialTime);
+        
+        const params = { type: taType, lv: 2, reward: 0 };
+        setModeParams(params);
+        generateQuestion(params); 
         
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = setInterval(() => {
@@ -460,14 +471,14 @@
       const handleTaAnswer = (h, m) => {
         if (!question) return;
         if (h === question.correctH && m === question.correctM) {
-          sounds.correct(); setScore(s => s + 1);
-          generateQuestion({ type: 'read', lv: 2, reward: 0 });
+          sounds.correct(); 
+          setScore(s => s + 1);
+          generateQuestion(modeParams);
         } else {
           sounds.wrong();
         }
       };
 
-      // 修正3：ガチャかぶりのフィードバックを追加
       const spinGacha = () => {
         if (gears >= 10) {
           setGears(g => g - 10);
@@ -528,7 +539,15 @@
                 <button className="menu-btn btn-read2" onClick={() => startGame('read', 2, 2)}>🥈 よむ Lv2<br/><small>(数字/⚙️2)</small></button>
                 <button className="menu-btn btn-move1" onClick={() => startGame('move', 1, 3)}>🥇 トラベル Lv1<br/><small>(時計/⚙️3)</small></button>
                 <button className="menu-btn btn-move2" onClick={() => startGame('move', 2, 4)}>🏆 トラベル Lv2<br/><small>(数字/⚙️4)</small></button>
-                <button className="menu-btn btn-attack" onClick={startTimeAttack}>⏰ タイムアタック</button>
+                
+                {/* タイムアタックを2つに分割 */}
+                <button className="menu-btn btn-ta-read" onClick={() => startTimeAttack('read')}>
+                  ⏰ よむ アタック (60びょう) <br/><small>3問せいかいで ⚙️1ゲット</small>
+                </button>
+                <button className="menu-btn btn-ta-move" onClick={() => startTimeAttack('move')}>
+                  ⏳ トラベル アタック (90びょう) <br/><small>1問せいかいで ⚙️2ゲット！どっさり！</small>
+                </button>
+                
                 <button className="menu-btn btn-book" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>📖 シールてちょう ({unlockedStickers.length}/100)</button>
                 <button className="menu-btn btn-reset" onClick={resetGame}>さいしょから (リセット)</button>
               </div>
@@ -541,7 +560,6 @@
               
               <Clock totalMinutes={modeParams && modeParams.type === 'move' ? interactiveMins : question.displayMinutes} showHint={showHint} />
               
-              {/* 修正2：トラベルLv2のカンニング防止 */}
               {modeParams && modeParams.type === 'move' && modeParams.lv === 1 && (
                 <div className="controls">
                   <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-60); }}>⏪ 1じかん</button>
@@ -603,8 +621,13 @@
 
           {view === 'time-attack' && question && (
             <div>
-              <div className="message-box">
-                のこり {timeLeft}びょう　スコア {score}
+              <div className="status-bar" style={{marginBottom: '10px'}}>
+                のこり {timeLeft}びょう　せいかい {score}もん
+              </div>
+
+              {/* タイムアタック中でも問題文（いま何時、〇分後など）をデカデカと表示 */}
+              <div className="message-box ta-question">
+                {question.text}
               </div>
 
               <Clock totalMinutes={question.displayMinutes} showHint={false} />
@@ -614,23 +637,23 @@
               ) : (
                 <div>
                   <div className="message-box">
-                    おわり！ スコア {score}
+                    おわり！ せいかい {score}もん
                   </div>
                   <button
-                    className="menu-btn btn-attack"
+                    className={`menu-btn ${modeParams.type === 'move' ? 'btn-ta-move' : 'btn-ta-read'}`}
                     onClick={() => {
                       sounds.click();
-                      const reward = Math.floor(score / 3);
+                      // トラベル(move)は1問正解で歯車2個！ よむ(read)は3問正解で歯車1個。
+                      const reward = modeParams.type === 'move' ? score * 2 : Math.floor(score / 3);
                       setGears(g => g + reward);
                       setView('home');
                     }}
                   >
-                    ほうしゅうをもらう (⚙️{Math.floor(score / 3)})
+                    ほうしゅうをもらう (⚙️{modeParams.type === 'move' ? score * 2 : Math.floor(score / 3)})
                   </button>
                 </div>
               )}
 
-              {/* 修正1：タイマーのメモリリークを防止 */}
               <button
                 className="btn-back"
                 onClick={() => { 
@@ -648,7 +671,6 @@
             <div>
               <h1>シールてちょう</h1>
 
-              {/* 修正5：ガチャボタンを上に移動 */}
               <button
                 className="menu-btn btn-book"
                 onClick={spinGacha}
