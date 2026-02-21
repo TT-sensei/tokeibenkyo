@@ -1,1 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>とけいのまちの じかんたんてい</title>
+  
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+  <style>
+    body { margin: 0; }
+    .app-container {
+      text-align: center;
+      font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', sans-serif;
+      background-color: #f0f8ff;
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+    h1, h2 { color: #ff6b6b; text-shadow: 2px 2px 0px #fff; }
+    .status-bar {
+      background: #fff; padding: 10px 20px; border-radius: 20px;
+      display: inline-block; font-size: 24px; font-weight: bold;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px;
+    }
+    .menu-buttons { display: flex; flex-direction: column; gap: 20px; align-items: center; margin-top: 40px; }
+    .btn {
+      background-color: #4ecdc4; color: white; border: none; border-radius: 50px;
+      padding: 15px 40px; font-size: 24px; font-weight: bold; cursor: pointer;
+      box-shadow: 0 5px 0 #3b9b95; transition: all 0.1s; width: 80%; max-width: 400px;
+    }
+    .btn:active { transform: translateY(5px); box-shadow: none; }
+    .btn.orange { background-color: #ff9f43; box-shadow: 0 5px 0 #cc7d30; }
+    .btn.gray { background-color: #ccc; box-shadow: 0 5px 0 #999; cursor: not-allowed; }
+    .clock-container {
+      margin: 20px auto; width: 250px; height: 250px; background: white;
+      border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; }
+    .choice-btn {
+      background: #fff; border: 3px solid #4ecdc4; color: #333; font-size: 22px;
+      font-weight: bold; padding: 15px 20px; border-radius: 15px; cursor: pointer;
+      width: 140px; box-shadow: 0 4px 0 #4ecdc4;
+    }
+    .choice-btn:active { transform: translateY(4px); box-shadow: none; }
+    .notebook {
+      background: #fff9c4; border: 5px solid #ffcc80; border-radius: 10px;
+      padding: 20px; max-width: 500px; margin: 20px auto; min-height: 300px;
+    }
+    .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px; margin-top: 20px; }
+    .sticker {
+      font-size: 40px; background: white; border-radius: 50%; width: 60px; height: 60px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1); animation: pop 0.3s ease-out;
+    }
+    @keyframes pop {
+      0% { transform: scale(0); }
+      80% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    .message { font-size: 24px; font-weight: bold; color: #ff6b6b; min-height: 36px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const STICKER_LIST = [
+      "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", 
+      "🦁", "🐮", "🐷", "🐸", "🐵", "🐧", "🐦", "🐤", "🦉", "🦄",
+      "🍎", "🍌", "🍇", "🍓", "🍉", "🍔", "🍕", "🍩", "🍦", "🍰",
+      "🚗", "🚓", "🚒", "🚑", "🚀", "🛸", "💎", "👑", "⚽️", "🎸"
+    ];
+
+    const Clock = ({ hour, minute }) => {
+      const hourAngle = (hour % 12) * 30 + (minute * 0.5);
+      const minuteAngle = minute * 6;
+
+      return (
+        <div className="clock-container">
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <circle cx="50" cy="50" r="48" fill="white" stroke="#ffb8b8" strokeWidth="4" />
+            {[...Array(12)].map((_, i) => {
+              const num = i + 1;
+              const angle = (num * 30 - 90) * (Math.PI / 180);
+              const x = 50 + 35 * Math.cos(angle);
+              const y = 50 + 35 * Math.sin(angle);
+              return (
+                <text key={num} x={x} y={y} fontSize="10" fill="#ff6b6b" fontWeight="bold" textAnchor="middle" dominantBaseline="central">
+                  {num}
+                </text>
+              );
+            })}
+            {[...Array(60)].map((_, i) => {
+              if (i % 5 === 0) return null;
+              const angle = (i * 6 - 90) * (Math.PI / 180);
+              const x = 50 + 44 * Math.cos(angle);
+              const y = 50 + 44 * Math.sin(angle);
+              return <circle key={`dot-${i}`} cx={x} cy={y} r="0.5" fill="#a0d2eb" />;
+            })}
+            <line x1="50" y1="50" x2="50" y2="25" stroke="#ff6b6b" strokeWidth="4" strokeLinecap="round" transform={`rotate(${hourAngle} 50 50)`} />
+            <line x1="50" y1="50" x2="50" y2="15" stroke="#4ecdc4" strokeWidth="3" strokeLinecap="round" transform={`rotate(${minuteAngle} 50 50)`} />
+            <circle cx="50" cy="50" r="3" fill="#333" />
+          </svg>
+        </div>
+      );
+    };
+
+    function App() {
+      const [view, setView] = useState('home');
+      const [gears, setGears] = useState(() => parseInt(localStorage.getItem('gears')) || 0);
+      const [stickers, setStickers] = useState(() => JSON.parse(localStorage.getItem('stickers')) || []);
+      const [question, setQuestion] = useState(null);
+      const [message, setMessage] = useState('');
+
+      useEffect(() => {
+        localStorage.setItem('gears', gears);
+        localStorage.setItem('stickers', JSON.stringify(stickers));
+      }, [gears, stickers]);
+
+      const generateQuestion = () => {
+        const h = Math.floor(Math.random() * 12) + 1;
+        const m = Math.floor(Math.random() * 12) * 5;
+        const correctAns = `${h}じ ${m}ふん`;
+        const wrong1 = `${h}じ ${(m + 15) % 60}ふん`;
+        let wrong2H = h === 12 ? 1 : h + 1;
+        const wrong2 = `${wrong2H}じ ${m}ふん`;
+        const choices = [correctAns, wrong1, wrong2].sort(() => Math.random() - 0.5);
+        setQuestion({ hour: h, minute: m, correct: correctAns, choices });
+        setMessage('なんじ なんぷん かな？');
+      };
+
+      const startGame = () => {
+        generateQuestion();
+        setView('game');
+      };
+
+      const handleAnswer = (choice) => {
+        if (choice === question.correct) {
+          setMessage('大せいかい！ はぐるまゲット！ ⚙️');
+          setGears(g => g + 1);
+          setTimeout(() => generateQuestion(), 1500);
+        } else {
+          setMessage('ざんねん… もういちど みてみよう！');
+        }
+      };
+
+      const spinGacha = () => {
+        if (gears >= 10) {
+          setGears(g => g - 10);
+          const randomSticker = STICKER_LIST[Math.floor(Math.random() * STICKER_LIST.length)];
+          setStickers([...stickers, randomSticker]);
+          setMessage(`「${randomSticker}」が でたよ！`);
+        }
+      };
+
+      return (
+        <div className="app-container">
+          <div className="status-bar">⚙️ はぐるま: {gears}こ</div>
+          
+          {view === 'home' && (
+            <div>
+              <h1>とけいのまちの じかんたんてい</h1>
+              <p>とけいを よんで はぐるまを あつめよう！</p>
+              <div className="menu-buttons">
+                <button className="btn" onClick={startGame}>とけいを よむ</button>
+                <button className="btn orange" onClick={() => { setView('notebook'); setMessage(''); }}>シールてちょう</button>
+              </div>
+            </div>
+          )}
+
+          {view === 'game' && question && (
+            <div>
+              <h2>いま なんじ？</h2>
+              <div className="message">{message}</div>
+              <Clock hour={question.hour} minute={question.minute} />
+              <div className="choices">
+                {question.choices.map((choice, i) => (
+                  <button key={i} className="choice-btn" onClick={() => handleAnswer(choice)}>{choice}</button>
+                ))}
+              </div>
+              <div style={{ marginTop: '30px' }}>
+                <button className="btn orange" style={{ fontSize: '18px', padding: '10px 20px' }} onClick={() => setView('home')}>もどる</button>
+              </div>
+            </div>
+          )}
+
+          {view === 'notebook' && (
+            <div>
+              <h2>たんてい シールてちょう</h2>
+              <div className="message">{message}</div>
+              <button className={`btn ${gears < 10 ? 'gray' : ''}`} onClick={spinGacha} disabled={gears < 10}>
+                {gears >= 10 ? 'ガチャをまわす (⚙️10こ)' : 'はぐるまが たりないよ'}
+              </button>
+              <div className="notebook">
+                <p>あつめたシール: {stickers.length}まい</p>
+                <div className="sticker-grid">
+                  {stickers.map((sticker, i) => <div key={i} className="sticker">{sticker}</div>)}
+                </div>
+              </div>
+              <div style={{ marginTop: '20px' }}>
+                <button className="btn orange" style={{ fontSize: '18px', padding: '10px 20px' }} onClick={() => setView('home')}>もどる</button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Reactを起動して画面に表示する
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
 
