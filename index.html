@@ -285,7 +285,7 @@
       }, [view, question]);
 
       // 💮演出
-      const triggerSuccess = (isCombo) => {
+      const triggerSuccess = () => {
         sounds.correct();
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 1200);
@@ -326,7 +326,7 @@
         setShowHint(false);
         const { type, lv } = params;
         let q = { displayMinutes: 0 };
-        const h = Math.floor(Math.random() * 12) + 1; // 1-12
+        const h = Math.floor(Math.random() * 12) + 1;
 
         if (type === 'read') {
           let m = 0;
@@ -415,17 +415,17 @@
         sounds.click();
         setView('time-attack');
         setScore(0); setTimeLeft(60); setCombo(0);
-        generateQuestion({ type: 'read', lv: 2, reward: 0 }); // テンキー入力で生成
+        generateQuestion({ type: 'read', lv: 2, reward: 0 }); 
         
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = setInterval(() => {
           setTimeLeft(t => {
             if (t <= 1) {
               clearInterval(timerRef.current);
-              sounds.gachaSR(); // 終了音
+              sounds.gachaSR(); 
               return 0;
             }
-            if (t <= 10) sounds.timeAttack(); // 焦る音
+            if (t <= 10) sounds.timeAttack(); 
             return t - 1;
           });
         }, 1000);
@@ -525,88 +525,153 @@
               )}
 
               {/* 回答UI */}
+              {/* よむ Lv0・Lv1（3択） */}
               {modeParams.type === 'read' && modeParams.lv <= 1 && question.choices && (
                 <div className="choices">
                   {question.choices.map((c, i) => (
-                    <button key={i} className="choice-btn" onClick={() => { sounds.click(); checkReadLv1(c.h, c.m); }}>{c.h}じ {c.m}ふん</button>
+                    <button
+                      key={i}
+                      className="choice-btn"
+                      onClick={() => {
+                        sounds.click();
+                        checkReadLv1(c.h, c.m);
+                      }}
+                    >
+                      {c.h}じ {c.m}ふん
+                    </button>
                   ))}
                 </div>
               )}
 
+              {/* よむ Lv2（テンキー） */}
               {modeParams.type === 'read' && modeParams.lv >= 2 && (
-                <Numpad onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />
+                <Numpad
+                  onSubmit={(h, m) => {
+                    sounds.click();
+                    checkNumpad(h, m);
+                  }}
+                />
               )}
 
+              {/* トラベル Lv1（時計操作） */}
               {modeParams.type === 'move' && modeParams.lv === 1 && (
-                <button className="choice-btn" style={{width: '200px', background: '#ffeaa7'}} onClick={() => { sounds.click(); checkMoveLv1(); }}>これだ！</button>
+                <button
+                  className="choice-btn"
+                  onClick={() => {
+                    sounds.click();
+                    checkMoveLv1();
+                  }}
+                >
+                  これだ！
+                </button>
               )}
 
+              {/* トラベル Lv2（テンキー） */}
               {modeParams.type === 'move' && modeParams.lv >= 2 && (
-                <Numpad onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />
+                <Numpad
+                  onSubmit={(h, m) => {
+                    sounds.click();
+                    checkNumpad(h, m);
+                  }}
+                />
               )}
 
-              <div>
-                <button className="btn-back" onClick={() => { sounds.click(); setView('home'); }}>もどる</button>
-              </div>
+              {/* もどるボタン */}
+              <button
+                className="btn-back"
+                onClick={() => {
+                  sounds.click();
+                  setView('home');
+                }}
+              >
+                もどる
+              </button>
             </div>
           )}
 
           {/* タイムアタック画面 */}
           {view === 'time-attack' && question && (
             <div>
-              <div className="message-box" style={{color: timeLeft <= 10 ? 'red' : 'inherit'}}>
-                のこり: {timeLeft}びょう　スコア: {score}
+              <div className="message-box">
+                のこり {timeLeft}びょう　スコア {score}
               </div>
 
               <Clock totalMinutes={question.displayMinutes} showHint={false} />
 
               {timeLeft > 0 ? (
-                <Numpad onSubmit={(h, m) => { sounds.click(); handleTaAnswer(h, m); }} />
+                <Numpad onSubmit={handleTaAnswer} />
               ) : (
-                <div style={{padding: '30px', background: 'rgba(255,255,255,0.9)', borderRadius: '20px', marginTop: '20px'}}>
-                  <h2 style={{color: '#e55039'}}>タイムアップ！</h2>
-                  <p style={{fontSize: '24px'}}>きろく： {score} もん</p>
-                  <p style={{fontSize: '20px', color: '#f39c12', fontWeight:'bold'}}>ごほうび ⚙️{Math.floor(score / 3)}こ ゲット！</p>
-                  <button className="btn-back" onClick={() => { 
-                    sounds.click(); 
-                    setGears(g => g + Math.floor(score / 3)); 
-                    setView('home'); 
-                  }}>ホームへもどる</button>
+                <div>
+                  <div className="message-box">
+                    おわり！ スコア {score}
+                  </div>
+
+                  <button
+                    className="menu-btn btn-attack"
+                    onClick={() => {
+                      sounds.click();
+                      const reward = Math.floor(score / 3);
+                      setGears(g => g + reward);
+                      setView('home');
+                    }}
+                  >
+                    ほうしゅうをもらう (⚙️{Math.floor(score / 3)})
+                  </button>
                 </div>
               )}
 
-              {timeLeft > 0 && (
-                <div>
-                  <button className="btn-back" onClick={() => { sounds.click(); clearInterval(timerRef.current); setView('home'); }}>やめる</button>
-                </div>
-              )}
+              <button
+                className="btn-back"
+                onClick={() => {
+                  sounds.click();
+                  setView('home');
+                }}
+              >
+                やめる
+              </button>
             </div>
           )}
 
           {/* シールてちょう */}
           {view === 'notebook' && (
             <div>
-              <h2 style={{color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.5)'}}>シールてちょう</h2>
-              
-              <button className="choice-btn" style={{width: '250px', marginBottom: '15px'}} onClick={spinGacha} disabled={gears < 10}>
-                {gears >= 10 ? 'ガチャをまわす(⚙️10)' : '⚙️が たりないよ'}
-              </button>
+              <h1>シールてちょう</h1>
 
               <div className="notebook">
                 <p style={{margin: '0 0 10px 0', fontWeight: 'bold'}}>あつめた数: {unlockedStickers.length} / 50</p>
                 <div className="sticker-grid">
                   {ALL_STICKERS.map((s) => {
-                    const isUnlocked = unlockedStickers.includes(s.id);
-                    return isUnlocked ? 
-                      (<div key={s.id} className={`sticker ${s.rarity}`}>{s.char}</div>) : 
-                      (<div key={s.id} className="sticker locked-sticker">?</div>);
+                    const unlocked = unlockedStickers.includes(s.id);
+                    return (
+                      <div
+                        key={s.id}
+                        className={`sticker ${unlocked ? s.rarity : 'locked-sticker'}`}
+                      >
+                        {unlocked ? s.char : "？"}
+                      </div>
+                    );
                   })}
                 </div>
               </div>
 
-              <div>
-                <button className="btn-back" onClick={() => { sounds.click(); setView('home'); }}>もどる</button>
-              </div>
+              <button
+                className="menu-btn btn-book"
+                onClick={spinGacha}
+                disabled={gears < 10}
+                style={{marginTop: '15px'}}
+              >
+                {gears >= 10 ? '🎲 ガチャをひく (⚙️10)' : '⚙️が たりないよ'}
+              </button>
+
+              <button
+                className="btn-back"
+                onClick={() => {
+                  sounds.click();
+                  setView('home');
+                }}
+              >
+                もどる
+              </button>
             </div>
           )}
         </div>
