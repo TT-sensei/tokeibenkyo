@@ -112,21 +112,29 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // --- 50種類のシールデータ (N:30, R:15, SR:5) ---
+       // --- 100種類のシールデータ (N:60, R:30, SR:10) ---
     const ALL_STICKERS = [
-      // Normal (N)
+      // Normal (N) - 60個：どうぶつ・海のいきもの・フルーツ
       "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯",
-      "🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🦆","🦅",
-      "🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌",
-      // Rare (R)
-      "🍎","🍌","🍇","🍓","🍉","🍔","🍕","🍩","🍦","🍰",
-      "🚗","🚓","🚒","🚑","🚀",
-      // Super Rare (SR)
-      "👑","💎","🏆","🐉","👽"
+      "🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🦆",
+      "🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋",
+      "🐌","🐞","🐜","🐢","🐍","🐙","🦑","🦐","🦞","🦀",
+      "🐡","🐠","🐟","🐬","🐳","🐋","🦈","🐊","🐅","🐆",
+      "🍎","🍌","🍇","🍓","🍉","🍊","🍋","🍈","🍒","🍑",
+      
+      // Rare (R) - 30個：おいしいもの・のりもの
+      "🍔","🍕","🌭","🥪","🌮","🌯","🥗","🥘","🥫","🍝",
+      "🍜","🍲","🍛","🍣","🍱","🥟","🍤","🍙","🍚","🍘",
+      "🚗","🚕","🚙","🚌","🚎","🏎️","🚓","🚑","🚒","🚐",
+      
+      // Super Rare (SR) - 10個：うちゅう・おたから・まぼろし
+      "🚀","🛸","🛰️","👑","💎","🏆","🏅","🐉","👽","👻"
     ].map((char, i) => {
       let rarity = 'N';
-      if (i >= 30 && i < 45) rarity = 'R';
-      if (i >= 45) rarity = 'SR';
+      // 60番目から89番目までをRare(R)に設定
+      if (i >= 60 && i < 90) rarity = 'R';
+      // 90番目以降をSuper Rare(SR)に設定
+      if (i >= 90) rarity = 'SR';
       return { id: i, char, rarity };
     });
 
@@ -499,7 +507,7 @@
                 <button className="menu-btn btn-move1" onClick={() => startGame('move', 1, 3)}>🥇 トラベル Lv1<br/><small>(時計/⚙️3)</small></button>
                 <button className="menu-btn btn-move2" onClick={() => startGame('move', 2, 4)}>🏆 トラベル Lv2<br/><small>(数字/⚙️4)</small></button>
                 <button className="menu-btn btn-attack" onClick={startTimeAttack}>⏰ タイムアタック</button>
-                <button className="menu-btn btn-book" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>📖 シールてちょう ({unlockedStickers.length}/50)</button>
+                <button className="menu-btn btn-book" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>📖 シールてちょう ({unlockedStickers.length}/100)</button>
                 <button className="menu-btn btn-reset" onClick={resetGame}>さいしょから (リセット)</button>
               </div>
             </div>
@@ -638,7 +646,7 @@
               <h1>シールてちょう</h1>
 
               <div className="notebook">
-                <p style={{margin: '0 0 10px 0', fontWeight: 'bold'}}>あつめた数: {unlockedStickers.length} / 50</p>
+                <p style={{margin: '0 0 10px 0', fontWeight: 'bold'}}>あつめた数: {unlockedStickers.length} / 100</p>
                 <div className="sticker-grid">
                   {ALL_STICKERS.map((s) => {
                     const unlocked = unlockedStickers.includes(s.id);
