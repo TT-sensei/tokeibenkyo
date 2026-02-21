@@ -10,7 +10,7 @@
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
   <style>
-    body { margin: 0; }
+    body { margin: 0; overflow-x: hidden; }
     .app-container {
       text-align: center;
       font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', sans-serif;
@@ -18,49 +18,73 @@
       min-height: 100vh;
       padding: 20px;
       color: #333;
+      position: relative;
     }
-    h1, h2 { color: #ff6b6b; text-shadow: 2px 2px 0px #fff; }
+    h1, h2 { color: #ff6b6b; text-shadow: 2px 2px 0px #fff; margin-top: 10px; }
     .status-bar {
       background: #fff; padding: 10px 20px; border-radius: 20px;
       display: inline-block; font-size: 24px; font-weight: bold;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px;
     }
-    .menu-buttons { display: flex; flex-direction: column; gap: 20px; align-items: center; margin-top: 40px; }
+    .menu-buttons { display: flex; flex-direction: column; gap: 20px; align-items: center; margin-top: 20px; }
     .btn {
       background-color: #4ecdc4; color: white; border: none; border-radius: 50px;
-      padding: 15px 40px; font-size: 24px; font-weight: bold; cursor: pointer;
-      box-shadow: 0 5px 0 #3b9b95; transition: all 0.1s; width: 80%; max-width: 400px;
+      padding: 15px 40px; font-size: 22px; font-weight: bold; cursor: pointer;
+      box-shadow: 0 5px 0 #3b9b95; transition: all 0.1s; width: 85%; max-width: 400px;
     }
     .btn:active { transform: translateY(5px); box-shadow: none; }
     .btn.orange { background-color: #ff9f43; box-shadow: 0 5px 0 #cc7d30; }
+    .btn.purple { background-color: #a29bfe; box-shadow: 0 5px 0 #6c5ce7; }
     .btn.gray { background-color: #ccc; box-shadow: 0 5px 0 #999; cursor: not-allowed; }
+    
     .clock-container {
-      margin: 20px auto; width: 250px; height: 250px; background: white;
+      margin: 10px auto; width: 220px; height: 220px; background: white;
       border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
-    .choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; }
+    .clock-hand { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    .choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; }
     .choice-btn {
-      background: #fff; border: 3px solid #4ecdc4; color: #333; font-size: 22px;
-      font-weight: bold; padding: 15px 20px; border-radius: 15px; cursor: pointer;
+      background: #fff; border: 3px solid #4ecdc4; color: #333; font-size: 20px;
+      font-weight: bold; padding: 12px 15px; border-radius: 15px; cursor: pointer;
       width: 140px; box-shadow: 0 4px 0 #4ecdc4;
     }
     .choice-btn:active { transform: translateY(4px); box-shadow: none; }
+
+    .controls { display: flex; justify-content: center; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+    .control-btn {
+      background: #ffeaa7; border: 2px solid #fdcb6e; color: #d63031;
+      font-size: 18px; font-weight: bold; padding: 10px 15px; border-radius: 10px;
+      cursor: pointer; box-shadow: 0 3px 0 #fdcb6e;
+    }
+    .control-btn:active { transform: translateY(3px); box-shadow: none; }
+
     .notebook {
       background: #fff9c4; border: 5px solid #ffcc80; border-radius: 10px;
-      padding: 20px; max-width: 500px; margin: 20px auto; min-height: 300px;
+      padding: 20px; max-width: 500px; margin: 20px auto; min-height: 200px;
     }
-    .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px; margin-top: 20px; }
+    .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 10px; margin-top: 20px; }
     .sticker {
-      font-size: 40px; background: white; border-radius: 50%; width: 60px; height: 60px;
+      font-size: 36px; background: white; border-radius: 50%; width: 50px; height: 50px;
       display: flex; align-items: center; justify-content: center;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1); animation: pop 0.3s ease-out;
     }
-    @keyframes pop {
-      0% { transform: scale(0); }
-      80% { transform: scale(1.2); }
-      100% { transform: scale(1); }
+    @keyframes pop { 0% { transform: scale(0); } 80% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    .message { font-size: 20px; font-weight: bold; color: #ff6b6b; min-height: 30px; margin: 10px 0; }
+
+    .success-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; display: flex; align-items: center; justify-content: center;
+      z-index: 1000; background: rgba(255, 255, 255, 0.6);
     }
-    .message { font-size: 24px; font-weight: bold; color: #ff6b6b; min-height: 36px; margin-bottom: 10px; }
+    .hanamaru {
+      font-size: 180px; text-shadow: 0 0 20px #ffcc80;
+      animation: stamp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes stamp {
+      0% { transform: scale(5) rotate(-30deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -76,9 +100,65 @@
       "🚗", "🚓", "🚒", "🚑", "🚀", "🛸", "💎", "👑", "⚽️", "🎸"
     ];
 
-    const Clock = ({ hour, minute }) => {
-      const hourAngle = (hour % 12) * 30 + (minute * 0.5);
-      const minuteAngle = minute * 6;
+    // --- 音を鳴らすための仕組み (Web Audio API) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    // 基本の音作り関数
+    const playTone = (freq, type, duration, startTimeOffset) => {
+      if (!audioCtx) audioCtx = new AudioContext();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + startTimeOffset);
+      
+      // 音量を少しずつ下げて自然に消えるようにする
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime + startTimeOffset);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTimeOffset + duration);
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      osc.start(audioCtx.currentTime + startTimeOffset);
+      osc.stop(audioCtx.currentTime + startTimeOffset + duration);
+    };
+
+    // 用途別の効果音
+    const sounds = {
+      click: () => {
+        playTone(800, 'sine', 0.05, 0); // ピッ
+      },
+      correct: () => {
+        playTone(523.25, 'sine', 0.1, 0);      // ド
+        playTone(659.25, 'sine', 0.1, 0.1);    // ミ
+        playTone(783.99, 'sine', 0.3, 0.2);    // ソ
+      },
+      wrong: () => {
+        playTone(150, 'sawtooth', 0.3, 0);     // ブッ
+        playTone(150, 'sawtooth', 0.3, 0.4);   // ブー
+      },
+      gacha: () => {
+        playTone(440, 'square', 0.1, 0);       // ラ
+        playTone(554.37, 'square', 0.1, 0.1);  // ド#
+        playTone(659.25, 'square', 0.1, 0.2);  // ミ
+        playTone(880, 'square', 0.4, 0.3);     // 高いラ
+      }
+    };
+    // ------------------------------------------
+
+    const calcTime = (totalMinutes) => {
+      while (totalMinutes < 0) totalMinutes += 12 * 60;
+      const h = Math.floor(totalMinutes / 60) % 12;
+      const m = totalMinutes % 60;
+      return { hour: h === 0 ? 12 : h, minute: m };
+    };
+
+    const Clock = ({ totalMinutes }) => {
+      const hourAngle = totalMinutes * 0.5;
+      const minuteAngle = totalMinutes * 6;
 
       return (
         <div className="clock-container">
@@ -89,11 +169,7 @@
               const angle = (num * 30 - 90) * (Math.PI / 180);
               const x = 50 + 35 * Math.cos(angle);
               const y = 50 + 35 * Math.sin(angle);
-              return (
-                <text key={num} x={x} y={y} fontSize="10" fill="#ff6b6b" fontWeight="bold" textAnchor="middle" dominantBaseline="central">
-                  {num}
-                </text>
-              );
+              return <text key={num} x={x} y={y} fontSize="10" fill="#ff6b6b" fontWeight="bold" textAnchor="middle" dominantBaseline="central">{num}</text>;
             })}
             {[...Array(60)].map((_, i) => {
               if (i % 5 === 0) return null;
@@ -102,8 +178,8 @@
               const y = 50 + 44 * Math.sin(angle);
               return <circle key={`dot-${i}`} cx={x} cy={y} r="0.5" fill="#a0d2eb" />;
             })}
-            <line x1="50" y1="50" x2="50" y2="25" stroke="#ff6b6b" strokeWidth="4" strokeLinecap="round" transform={`rotate(${hourAngle} 50 50)`} />
-            <line x1="50" y1="50" x2="50" y2="15" stroke="#4ecdc4" strokeWidth="3" strokeLinecap="round" transform={`rotate(${minuteAngle} 50 50)`} />
+            <line className="clock-hand" x1="50" y1="50" x2="50" y2="25" stroke="#ff6b6b" strokeWidth="4" strokeLinecap="round" transform={`rotate(${hourAngle} 50 50)`} />
+            <line className="clock-hand" x1="50" y1="50" x2="50" y2="15" stroke="#4ecdc4" strokeWidth="3" strokeLinecap="round" transform={`rotate(${minuteAngle} 50 50)`} />
             <circle cx="50" cy="50" r="3" fill="#333" />
           </svg>
         </div>
@@ -114,77 +190,187 @@
       const [view, setView] = useState('home');
       const [gears, setGears] = useState(() => parseInt(localStorage.getItem('gears')) || 0);
       const [stickers, setStickers] = useState(() => JSON.parse(localStorage.getItem('stickers')) || []);
+      
       const [question, setQuestion] = useState(null);
       const [message, setMessage] = useState('');
+      const [mistakeCount, setMistakeCount] = useState(0);
+      const [showSuccess, setShowSuccess] = useState(false);
+      const [interactiveMinutes, setInteractiveMinutes] = useState(0);
 
       useEffect(() => {
         localStorage.setItem('gears', gears);
         localStorage.setItem('stickers', JSON.stringify(stickers));
       }, [gears, stickers]);
 
-      const generateQuestion = () => {
-        const h = Math.floor(Math.random() * 12) + 1;
-        const m = Math.floor(Math.random() * 12) * 5;
-        const correctAns = `${h}じ ${m}ふん`;
-        const wrong1 = `${h}じ ${(m + 15) % 60}ふん`;
-        let wrong2H = h === 12 ? 1 : h + 1;
-        const wrong2 = `${wrong2H}じ ${m}ふん`;
-        const choices = [correctAns, wrong1, wrong2].sort(() => Math.random() - 0.5);
-        setQuestion({ hour: h, minute: m, correct: correctAns, choices });
+      const triggerSuccess = () => {
+        sounds.correct(); // 正解音を鳴らす
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 1500);
+      };
+
+      // ---------------- モード1 ----------------
+      const generateReadQuestion = () => {
+        const totalMin = Math.floor(Math.random() * 12) * 60 + Math.floor(Math.random() * 12) * 5;
+        const correctTime = calcTime(totalMin);
+        const correctAns = `${correctTime.hour}じ ${correctTime.minute}ふん`;
+        
+        const wrongTime1 = calcTime(totalMin + 15);
+        const wrongTime2 = calcTime(totalMin + 60);
+        const choices = [
+          correctAns,
+          `${wrongTime1.hour}じ ${wrongTime1.minute}ふん`,
+          `${wrongTime2.hour}じ ${correctTime.minute}ふん`
+        ].sort(() => Math.random() - 0.5);
+        
+        setQuestion({ totalMinutes: totalMin, correct: correctAns, choices });
         setMessage('なんじ なんぷん かな？');
       };
 
-      const startGame = () => {
-        generateQuestion();
-        setView('game');
+      const startReadGame = () => {
+        sounds.click();
+        setMistakeCount(0);
+        generateReadQuestion();
+        setView('game-read');
       };
 
-      const handleAnswer = (choice) => {
+      const handleReadAnswer = (choice) => {
         if (choice === question.correct) {
           setMessage('大せいかい！ はぐるまゲット！ ⚙️');
+          triggerSuccess();
           setGears(g => g + 1);
-          setTimeout(() => generateQuestion(), 1500);
+          setMistakeCount(0);
+          setTimeout(() => generateReadQuestion(), 1500);
         } else {
-          setMessage('ざんねん… もういちど みてみよう！');
+          sounds.wrong(); // 不正解音を鳴らす
+          const newMistakes = mistakeCount + 1;
+          if (newMistakes >= 3) {
+            setGears(g => Math.max(0, g - 1));
+            setMistakeCount(0);
+            setMessage('3かい まちがえた！ はぐるま1こ ぼっしゅう 😭 べつのもんだいにするね');
+          } else {
+            setMistakeCount(newMistakes);
+            setMessage(`ざんねん！ちがうもんだいにするよ (${newMistakes}かい ミス)`);
+          }
+          setTimeout(() => generateReadQuestion(), 2000);
         }
       };
 
+      // ---------------- モード2 ----------------
+      const generateMoveQuestion = () => {
+        const startTotalMin = Math.floor(Math.random() * 12) * 60 + (Math.floor(Math.random() * 4) * 15);
+        const offsets = [10, 15, 20, 30, 60, -10, -15, -20, -30, -60];
+        const offset = offsets[Math.floor(Math.random() * offsets.length)];
+        const targetTotalMin = startTotalMin + offset;
+        
+        setQuestion({ startTotal: startTotalMin, offset: offset, targetTotal: targetTotalMin });
+        setInteractiveMinutes(startTotalMin);
+        
+        let offsetText = offset > 0 ? `${offset}ぷん ご` : `${Math.abs(offset)}ぷん まえ`;
+        if(offset === 60) offsetText = "1じかん ご";
+        if(offset === -60) offsetText = "1じかん まえ";
+
+        const startTime = calcTime(startTotalMin);
+        setMessage(`いまは ${startTime.hour}じ ${startTime.minute}ふん。「${offsetText}」は なんじ？`);
+      };
+
+      const startMoveGame = () => {
+        sounds.click();
+        setMistakeCount(0);
+        generateMoveQuestion();
+        setView('game-move');
+      };
+
+      const moveClock = (minutes) => {
+        sounds.click(); // 時計を動かす音を鳴らす
+        setInteractiveMinutes(prev => prev + minutes);
+      };
+
+      const checkMoveAnswer = () => {
+        const isCorrect = (interactiveMinutes % 720 + 720) % 720 === (question.targetTotal % 720 + 720) % 720;
+        
+        if (isCorrect) {
+          triggerSuccess();
+          setMessage('大せいかい！ タイムトラベル せいこう！ ⚙️ゲット！');
+          setGears(g => g + 1);
+          setMistakeCount(0);
+          setTimeout(() => generateMoveQuestion(), 1500);
+        } else {
+          sounds.wrong(); // 不正解音を鳴らす
+          const newMistakes = mistakeCount + 1;
+          if (newMistakes >= 3) {
+            setGears(g => Math.max(0, g - 1));
+            setMistakeCount(0);
+            setMessage('3かい まちがえた！ はぐるま1こ ぼっしゅう 😭 べつのじだいへ いくよ');
+            setTimeout(() => generateMoveQuestion(), 2000);
+          } else {
+            setMistakeCount(newMistakes);
+            setMessage(`おしい！ もうすこし ぐるぐるしてみよう (${newMistakes}かい ミス)`);
+          }
+        }
+      };
+
+      // ---------------- ガチャ ----------------
       const spinGacha = () => {
         if (gears >= 10) {
+          sounds.gacha(); // ガチャの音を鳴らす
           setGears(g => g - 10);
           const randomSticker = STICKER_LIST[Math.floor(Math.random() * STICKER_LIST.length)];
           setStickers([...stickers, randomSticker]);
           setMessage(`「${randomSticker}」が でたよ！`);
+        } else {
+          sounds.wrong();
         }
       };
 
       return (
         <div className="app-container">
+          {showSuccess && <div className="success-overlay"><div className="hanamaru">💮</div></div>}
+
           <div className="status-bar">⚙️ はぐるま: {gears}こ</div>
           
           {view === 'home' && (
             <div>
-              <h1>とけいのまちの じかんたんてい</h1>
-              <p>とけいを よんで はぐるまを あつめよう！</p>
+              <h1>じかんたんてい</h1>
               <div className="menu-buttons">
-                <button className="btn" onClick={startGame}>とけいを よむ</button>
-                <button className="btn orange" onClick={() => { setView('notebook'); setMessage(''); }}>シールてちょう</button>
+                <button className="btn" onClick={startReadGame}>① とけいを よむ</button>
+                <button className="btn purple" onClick={startMoveGame}>② タイムトラベル (なんぷんご？)</button>
+                <button className="btn orange" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>シールてちょう</button>
               </div>
             </div>
           )}
 
-          {view === 'game' && question && (
+          {view === 'game-read' && question && (
             <div>
               <h2>いま なんじ？</h2>
               <div className="message">{message}</div>
-              <Clock hour={question.hour} minute={question.minute} />
+              <Clock totalMinutes={question.totalMinutes} />
               <div className="choices">
                 {question.choices.map((choice, i) => (
-                  <button key={i} className="choice-btn" onClick={() => handleAnswer(choice)}>{choice}</button>
+                  <button key={i} className="choice-btn" onClick={() => handleReadAnswer(choice)}>{choice}</button>
                 ))}
               </div>
-              <div style={{ marginTop: '30px' }}>
-                <button className="btn orange" style={{ fontSize: '18px', padding: '10px 20px' }} onClick={() => setView('home')}>もどる</button>
+              <div style={{ marginTop: '20px' }}>
+                <button className="btn orange" style={{ fontSize: '18px', padding: '10px 20px' }} onClick={() => { sounds.click(); setView('home'); }}>もどる</button>
+              </div>
+            </div>
+          )}
+
+          {view === 'game-move' && question && (
+            <div>
+              <h2>タイムトラベル！</h2>
+              <div className="message" style={{ fontSize: '18px' }}>{message}</div>
+              <Clock totalMinutes={interactiveMinutes} />
+              <div className="controls">
+                <button className="control-btn" onClick={() => moveClock(-60)}>⏪ 1じかん</button>
+                <button className="control-btn" onClick={() => moveClock(-5)}>◁ 5ふん</button>
+                <button className="control-btn" onClick={() => moveClock(5)}>5ふん ▷</button>
+                <button className="control-btn" onClick={() => moveClock(60)}>1じかん ⏩</button>
+              </div>
+              <div style={{ marginTop: '20px' }}>
+                <button className="btn" onClick={checkMoveAnswer} style={{ width: '100%', maxWidth: '250px' }}>これだ！</button>
+              </div>
+              <div style={{ marginTop: '20px' }}>
+                <button className="btn orange" style={{ fontSize: '18px', padding: '10px 20px' }} onClick={() => { sounds.click(); setView('home'); }}>もどる</button>
               </div>
             </div>
           )}
@@ -203,7 +389,7 @@
                 </div>
               </div>
               <div style={{ marginTop: '20px' }}>
-                <button className="btn orange" style={{ fontSize: '18px', padding: '10px 20px' }} onClick={() => setView('home')}>もどる</button>
+                <button className="btn orange" style={{ fontSize: '18px', padding: '10px 20px' }} onClick={() => { sounds.click(); setView('home'); }}>もどる</button>
               </div>
             </div>
           )}
@@ -211,10 +397,8 @@
       );
     }
 
-    // Reactを起動して画面に表示する
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
 </body>
 </html>
-
