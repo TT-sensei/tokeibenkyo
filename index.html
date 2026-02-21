@@ -114,18 +114,15 @@
 
     // --- 100種類の特大ボリュームシールデータ (N:60, R:30, SR:10) ---
     const ALL_STICKERS = [
-      // Normal (N) - 60個
       "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯",
       "🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🦆",
       "🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋",
       "🐌","🐞","🐜","🐢","🐍","🐙","🦑","🦐","🦞","🦀",
       "🐡","🐠","🐟","🐬","🐳","🐋","🦈","🐊","🐅","🐆",
       "🍎","🍌","🍇","🍓","🍉","🍊","🍋","🍈","🍒","🍑",
-      // Rare (R) - 30個
       "🍔","🍕","🌭","🥪","🌮","🌯","🥗","🥘","🥫","🍝",
       "🍜","🍲","🍛","🍣","🍱","🥟","🍤","🍙","🍚","🍘",
       "🚗","🚕","🚙","🚌","🚎","🏎️","🚓","🚑","🚒","🚐",
-      // Super Rare (SR) - 10個
       "🚀","🛸","🛰️","👑","💎","🏆","🏅","🐉","👽","👻"
     ].map((char, i) => {
       let rarity = 'N';
@@ -134,7 +131,6 @@
       return { id: i, char, rarity };
     });
 
-    // --- Web Audio API (音) ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx;
     const playTone = (freq, type, duration, startTimeOffset, vol=0.1) => {
@@ -162,7 +158,6 @@
       timeAttack: () => playTone(880, 'sine', 0.1, 0)
     };
 
-    // --- 補助関数 ---
     const calcTime = (totalMinutes) => {
       while (totalMinutes < 0) totalMinutes += 24 * 60;
       const h24 = Math.floor(totalMinutes / 60) % 24;
@@ -179,7 +174,6 @@
       return 'bg-night';
     };
 
-    // --- コンポーネント ---
     const Clock = ({ totalMinutes, showHint }) => {
       const hourAngle = totalMinutes * 0.5;
       const minuteAngle = totalMinutes * 6;
@@ -230,14 +224,12 @@
           const newVal = h + String(key);
           if (parseInt(newVal) <= 12) {
             setH(newVal);
-            // 10・11・12 対応（2ケタ入力か、2〜9が入力されたら「ふん」へ移動）
             if (newVal.length === 2 || (newVal.length === 1 && parseInt(newVal) >= 2)) {
               setActiveField('M');
             }
           }
         } else {
           const newVal = m + String(key);
-          // 2ケタ制限 ＆ 59以下のみ入力可能（これで 0 でも 00 でもOK、000は防げる）
           if (newVal.length <= 2 && parseInt(newVal) <= 59) {
             setM(newVal);
           }
@@ -261,12 +253,37 @@
       );
     };
 
-    // --- メインアプリ ---
+    // ======【最重要】データ破損によるフリーズを100%防ぐための安全装置 ======
+    const getSafeGears = () => {
+      try {
+        const saved = localStorage.getItem('gears');
+        return saved ? parseInt(saved) || 0 : 0;
+      } catch (e) {
+        return 0; // データが壊れていたら0にする（白画面回避）
+      }
+    };
+
+    const getSafeStickers = () => {
+      try {
+        const saved = localStorage.getItem('unlockedStickers');
+        // 保存データがない、または "undefined" のような不正な文字の時は空っぽにする
+        if (!saved || saved === "undefined" || saved === "null") return [];
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return []; // 読み込みに失敗したらリセットして開く（白画面回避）
+      }
+    };
+    // ==============================================================
+
     function App() {
       const [view, setView] = useState('home');
       const [bgMode, setBgMode] = useState('bg-day');
-      const [gears, setGears] = useState(() => parseInt(localStorage.getItem('gears')) || 0);
-      const [unlockedStickers, setUnlockedStickers] = useState(() => JSON.parse(localStorage.getItem('unlockedStickers')) || []);
+      
+      // 先ほどの安全な関数を使ってデータを読み込む
+      const [gears, setGears] = useState(getSafeGears);
+      const [unlockedStickers, setUnlockedStickers] = useState(getSafeStickers);
+      
       const [combo, setCombo] = useState(0);
       const [mistakes, setMistakes] = useState(0);
       
@@ -283,8 +300,12 @@
       const timerRef = useRef(null);
 
       useEffect(() => {
-        localStorage.setItem('gears', gears);
-        localStorage.setItem('unlockedStickers', JSON.stringify(unlockedStickers));
+        try {
+          localStorage.setItem('gears', gears);
+          localStorage.setItem('unlockedStickers', JSON.stringify(unlockedStickers));
+        } catch (e) {
+          // 保存エラーが出てもゲームを止めない
+        }
       }, [gears, unlockedStickers]);
 
       useEffect(() => {
@@ -299,7 +320,7 @@
       };
 
       const addReward = (amount) => {
-        let earned = amount;
+        let earned = amount || 1;
         const newCombo = combo + 1;
         setCombo(newCombo);
         if (newCombo > 0 && newCombo % 3 === 0) {
@@ -327,12 +348,10 @@
         }
       };
 
-      // --- 問題生成 ---
       const generateQuestion = (params) => {
+        if (!params) return; // 安全対策
         setShowHint(false);
         const { type, lv } = params;
-        
-        // 毎回新しいidを振ることで、テンキーを確実にリセット
         let q = { displayMinutes: 0, id: Math.random() };
         const h = Math.floor(Math.random() * 12) + 1;
 
@@ -388,24 +407,27 @@
       };
 
       const checkReadLv1 = (ansH, ansM) => {
+        if (!question) return;
         if (ansH === question.correctH && ansM === question.correctM) {
-          addReward(modeParams.reward);
+          addReward(modeParams ? modeParams.reward : 1);
           setMistakes(0);
           setTimeout(() => generateQuestion(modeParams), 1500);
         } else handleMistake();
       };
 
       const checkNumpad = (h, m) => {
+        if (!question) return;
         if (h === question.correctH && m === question.correctM) {
-          addReward(modeParams.reward);
+          addReward(modeParams ? modeParams.reward : 1);
           setMistakes(0);
           setTimeout(() => generateQuestion(modeParams), 1500);
         } else handleMistake();
       };
 
       const checkMoveLv1 = () => {
+        if (!question) return;
         if ((interactiveMins % 720 + 720) % 720 === (question.targetTotal % 720 + 720) % 720) {
-          addReward(modeParams.reward);
+          addReward(modeParams ? modeParams.reward : 1);
           setMistakes(0);
           setTimeout(() => generateQuestion(modeParams), 1500);
         } else handleMistake();
@@ -417,7 +439,6 @@
         }
       };
 
-      // --- タイムアタック ---
       const startTimeAttack = () => {
         sounds.click();
         setView('time-attack');
@@ -439,6 +460,7 @@
       };
 
       const handleTaAnswer = (h, m) => {
+        if (!question) return;
         if (h === question.correctH && m === question.correctM) {
           sounds.correct(); setScore(s => s + 1);
           generateQuestion({ type: 'read', lv: 2, reward: 0 });
@@ -470,7 +492,7 @@
       };
 
       const resetGame = () => {
-        if(confirm("ほんとうに データを ぜんぶ けしますか？")) {
+        if(window.confirm("ほんとうに データを ぜんぶ けしますか？")) {
           localStorage.clear();
           setGears(0); setUnlockedStickers([]);
           sounds.click();
@@ -503,7 +525,6 @@
                 <button className="menu-btn btn-move1" onClick={() => startGame('move', 1, 3)}>🥇 トラベル Lv1<br/><small>(時計/⚙️3)</small></button>
                 <button className="menu-btn btn-move2" onClick={() => startGame('move', 2, 4)}>🏆 トラベル Lv2<br/><small>(数字/⚙️4)</small></button>
                 <button className="menu-btn btn-attack" onClick={startTimeAttack}>⏰ タイムアタック</button>
-                {/* ボタンの表示を100個に */}
                 <button className="menu-btn btn-book" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>📖 シールてちょう ({unlockedStickers.length}/100)</button>
                 <button className="menu-btn btn-reset" onClick={resetGame}>さいしょから (リセット)</button>
               </div>
@@ -514,9 +535,9 @@
             <div>
               <div className="message-box">{message}</div>
               
-              <Clock totalMinutes={modeParams.type === 'move' ? interactiveMins : question.displayMinutes} showHint={showHint} />
+              <Clock totalMinutes={modeParams && modeParams.type === 'move' ? interactiveMins : question.displayMinutes} showHint={showHint} />
               
-              {modeParams.type === 'move' && (
+              {modeParams && modeParams.type === 'move' && (
                 <div className="controls">
                   <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-60); }}>⏪ 1じかん</button>
                   <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-5); }}>◁ 5ふん</button>
@@ -529,8 +550,7 @@
                 <button className="btn-hint" onClick={useHint}>💡 ヒントをみる (⚙️1)</button>
               )}
 
-              {/* 回答UI */}
-              {modeParams.type === 'read' && modeParams.lv <= 1 && question.choices && (
+              {modeParams && modeParams.type === 'read' && modeParams.lv <= 1 && question.choices && (
                 <div className="choices">
                   {question.choices.map((c, i) => (
                     <button
@@ -544,15 +564,14 @@
                 </div>
               )}
 
-              {/* 毎回リセットされるテンキー (よむ Lv2) */}
-              {modeParams.type === 'read' && modeParams.lv >= 2 && (
+              {modeParams && modeParams.type === 'read' && modeParams.lv >= 2 && (
                 <Numpad
                   key={question.id}
                   onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }}
                 />
               )}
 
-              {modeParams.type === 'move' && modeParams.lv === 1 && (
+              {modeParams && modeParams.type === 'move' && modeParams.lv === 1 && (
                 <button
                   className="choice-btn"
                   onClick={() => { sounds.click(); checkMoveLv1(); }}
@@ -561,8 +580,7 @@
                 </button>
               )}
 
-              {/* 毎回リセットされるテンキー (トラベル Lv2) */}
-              {modeParams.type === 'move' && modeParams.lv >= 2 && (
+              {modeParams && modeParams.type === 'move' && modeParams.lv >= 2 && (
                 <Numpad
                   key={question.id}
                   onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }}
@@ -578,7 +596,6 @@
             </div>
           )}
 
-          {/* タイムアタック */}
           {view === 'time-attack' && question && (
             <div>
               <div className="message-box">
@@ -588,7 +605,6 @@
               <Clock totalMinutes={question.displayMinutes} showHint={false} />
 
               {timeLeft > 0 ? (
-                {/* 毎回リセットされるテンキー (タイムアタック) */}
                 <Numpad key={question.id} onSubmit={handleTaAnswer} />
               ) : (
                 <div>
@@ -618,7 +634,6 @@
             </div>
           )}
 
-          {/* シールてちょう */}
           {view === 'notebook' && (
             <div>
               <h1>シールてちょう</h1>
