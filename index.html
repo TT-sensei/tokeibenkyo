@@ -84,12 +84,12 @@
 
     /* 手帳とシール */
     .notebook { background: #fff9c4; border: 5px solid #ffcc80; border-radius: 10px; padding: 15px; max-width: 500px; margin: 0 auto; min-height: 200px; }
-    .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); gap: 8px; margin-top: 15px; }
-    .sticker { font-size: 32px; background: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 8px; margin-top: 15px; }
+    .sticker { font-size: 28px; background: white; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
     .sticker.N { border: 2px solid #ccc; }
     .sticker.R { border: 3px solid #c0c0c0; background: linear-gradient(135deg, #f5f7fa, #c3cfe2); box-shadow: 0 0 10px silver; }
     .sticker.SR { border: 3px solid #ffd700; background: linear-gradient(135deg, #fff9c4, #ffc107); box-shadow: 0 0 15px gold; }
-    .locked-sticker { background: rgba(0,0,0,0.1); font-size: 20px; color: rgba(0,0,0,0.2); border: 2px dashed #ccc; }
+    .locked-sticker { background: rgba(0,0,0,0.1); font-size: 16px; color: rgba(0,0,0,0.2); border: 2px dashed #ccc; }
 
     /* ド派手演出 */
     .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -99,7 +99,7 @@
     
     /* ガチャ演出用 */
     .gacha-bg { background: rgba(0,0,0,0.8); pointer-events: auto; flex-direction: column; }
-    .gacha-item { font-size: 120px; animation: stamp 0.8s ease-out forwards; position: relative; }
+    .gacha-item { font-size: 120px; animation: stamp 0.8s ease-out forwards; position: relative; width: 150px; height: 150px; }
     .gacha-item.R::after { content: '✨'; position: absolute; font-size: 60px; top: -20px; right: -20px; animation: spin 3s linear infinite; }
     .gacha-item.SR::after { content: '🌟'; position: absolute; font-size: 80px; top: -30px; right: -30px; animation: spin 2s linear infinite; }
     .gacha-title { color: white; font-size: 30px; margin-bottom: 20px; font-weight: bold; text-shadow: 0 0 10px gold; animation: bounce 0.5s infinite; }
@@ -112,29 +112,25 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-       // --- 100種類のシールデータ (N:60, R:30, SR:10) ---
+    // --- 100種類の特大ボリュームシールデータ (N:60, R:30, SR:10) ---
     const ALL_STICKERS = [
-      // Normal (N) - 60個：どうぶつ・海のいきもの・フルーツ
+      // Normal (N) - 60個
       "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯",
       "🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🦆",
       "🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋",
       "🐌","🐞","🐜","🐢","🐍","🐙","🦑","🦐","🦞","🦀",
       "🐡","🐠","🐟","🐬","🐳","🐋","🦈","🐊","🐅","🐆",
       "🍎","🍌","🍇","🍓","🍉","🍊","🍋","🍈","🍒","🍑",
-      
-      // Rare (R) - 30個：おいしいもの・のりもの
+      // Rare (R) - 30個
       "🍔","🍕","🌭","🥪","🌮","🌯","🥗","🥘","🥫","🍝",
       "🍜","🍲","🍛","🍣","🍱","🥟","🍤","🍙","🍚","🍘",
       "🚗","🚕","🚙","🚌","🚎","🏎️","🚓","🚑","🚒","🚐",
-      
-      // Super Rare (SR) - 10個：うちゅう・おたから・まぼろし
+      // Super Rare (SR) - 10個
       "🚀","🛸","🛰️","👑","💎","🏆","🏅","🐉","👽","👻"
     ].map((char, i) => {
       let rarity = 'N';
-      // 60番目から89番目までをRare(R)に設定
-      if (i >= 60 && i < 90) rarity = 'R';
-      // 90番目以降をSuper Rare(SR)に設定
-      if (i >= 90) rarity = 'SR';
+      if (i >= 60 && i < 90) rarity = 'R'; // 60〜89番目はレア
+      if (i >= 90) rarity = 'SR';          // 90番目以降はスーパーレア
       return { id: i, char, rarity };
     });
 
@@ -229,12 +225,19 @@
           if (activeField === 'H') setH(''); else setM('');
           return;
         }
+        
+        // ★【修正】「10・11・12」が打てるように！
         if (activeField === 'H') {
-          const newVal = h + key;
-          if (parseInt(newVal) <= 12) setH(newVal);
-          if (newVal.length >= 1 || parseInt(newVal) > 1) setActiveField('M'); // 自動移動
+          const newVal = h + String(key);
+          if (parseInt(newVal) <= 12) {
+            setH(newVal);
+            // 2ケタになった時、または1ケタ目が「2〜9」の時だけ「ふん」に自動移動
+            if (newVal.length === 2 || (newVal.length === 1 && parseInt(newVal) >= 2)) {
+              setActiveField('M');
+            }
+          }
         } else {
-          const newVal = m + key;
+          const newVal = m + String(key);
           if (parseInt(newVal) <= 59) setM(newVal);
         }
       };
@@ -258,7 +261,6 @@
 
     // --- メインアプリ ---
     function App() {
-      // 状態管理
       const [view, setView] = useState('home');
       const [bgMode, setBgMode] = useState('bg-day');
       const [gears, setGears] = useState(() => parseInt(localStorage.getItem('gears')) || 0);
@@ -266,7 +268,6 @@
       const [combo, setCombo] = useState(0);
       const [mistakes, setMistakes] = useState(0);
       
-      // ゲームプレイ用状態
       const [modeParams, setModeParams] = useState(null);
       const [question, setQuestion] = useState(null);
       const [message, setMessage] = useState('');
@@ -275,31 +276,26 @@
       const [interactiveMins, setInteractiveMins] = useState(0);
       const [gachaResult, setGachaResult] = useState(null);
       
-      // タイムアタック用
       const [timeLeft, setTimeLeft] = useState(0);
       const [score, setScore] = useState(0);
       const timerRef = useRef(null);
 
-      // 保存
       useEffect(() => {
         localStorage.setItem('gears', gears);
         localStorage.setItem('unlockedStickers', JSON.stringify(unlockedStickers));
       }, [gears, unlockedStickers]);
 
-      // 時間ごとの背景更新
       useEffect(() => {
         if (view === 'home' || view === 'notebook') setBgMode('bg-day');
         else if (question) setBgMode(getBgClass(question.displayMinutes));
       }, [view, question]);
 
-      // 💮演出
       const triggerSuccess = () => {
         sounds.correct();
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 1200);
       };
 
-      // はぐるま増減とコンボ処理
       const addReward = (amount) => {
         let earned = amount;
         const newCombo = combo + 1;
@@ -333,7 +329,9 @@
       const generateQuestion = (params) => {
         setShowHint(false);
         const { type, lv } = params;
-        let q = { displayMinutes: 0 };
+        
+        // ★【修正】id: Math.random() をつけてテンキーをリセット可能にする
+        let q = { displayMinutes: 0, id: Math.random() };
         const h = Math.floor(Math.random() * 12) + 1;
 
         if (type === 'read') {
@@ -387,7 +385,6 @@
         setView('game');
       };
 
-      // --- 回答チェック ---
       const checkReadLv1 = (ansH, ansM) => {
         if (ansH === question.correctH && ansM === question.correctM) {
           addReward(modeParams.reward);
@@ -448,7 +445,6 @@
         }
       };
 
-      // --- ガチャ ---
       const spinGacha = () => {
         if (gears >= 10) {
           setGears(g => g - 10);
@@ -479,12 +475,10 @@
         }
       };
 
-      // 画面の描画
       return (
         <div className={`app-container ${bgMode}`}>
           {showSuccess && <div className="overlay"><div className="hanamaru">💮</div></div>}
           
-          {/* ガチャド派手演出 */}
           {gachaResult && (
             <div className="overlay gacha-bg">
               <div className="gacha-title">{gachaResult.rarity === 'SR' ? '超・大アタリ！！' : gachaResult.rarity === 'R' ? '大アタリ！' : 'シールゲット！'}</div>
@@ -507,6 +501,7 @@
                 <button className="menu-btn btn-move1" onClick={() => startGame('move', 1, 3)}>🥇 トラベル Lv1<br/><small>(時計/⚙️3)</small></button>
                 <button className="menu-btn btn-move2" onClick={() => startGame('move', 2, 4)}>🏆 トラベル Lv2<br/><small>(数字/⚙️4)</small></button>
                 <button className="menu-btn btn-attack" onClick={startTimeAttack}>⏰ タイムアタック</button>
+                {/* ★【修正】ボタンの表示を100個に！ */}
                 <button className="menu-btn btn-book" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>📖 シールてちょう ({unlockedStickers.length}/100)</button>
                 <button className="menu-btn btn-reset" onClick={resetGame}>さいしょから (リセット)</button>
               </div>
@@ -533,17 +528,13 @@
               )}
 
               {/* 回答UI */}
-              {/* よむ Lv0・Lv1（3択） */}
               {modeParams.type === 'read' && modeParams.lv <= 1 && question.choices && (
                 <div className="choices">
                   {question.choices.map((c, i) => (
                     <button
                       key={i}
                       className="choice-btn"
-                      onClick={() => {
-                        sounds.click();
-                        checkReadLv1(c.h, c.m);
-                      }}
+                      onClick={() => { sounds.click(); checkReadLv1(c.h, c.m); }}
                     >
                       {c.h}じ {c.m}ふん
                     </button>
@@ -551,53 +542,41 @@
                 </div>
               )}
 
-              {/* よむ Lv2（テンキー） */}
+              {/* ★【修正】key={question.id} でテンキーを毎回リセット！ */}
               {modeParams.type === 'read' && modeParams.lv >= 2 && (
                 <Numpad
-                  onSubmit={(h, m) => {
-                    sounds.click();
-                    checkNumpad(h, m);
-                  }}
+                  key={question.id}
+                  onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }}
                 />
               )}
 
-              {/* トラベル Lv1（時計操作） */}
               {modeParams.type === 'move' && modeParams.lv === 1 && (
                 <button
                   className="choice-btn"
-                  onClick={() => {
-                    sounds.click();
-                    checkMoveLv1();
-                  }}
+                  onClick={() => { sounds.click(); checkMoveLv1(); }}
                 >
                   これだ！
                 </button>
               )}
 
-              {/* トラベル Lv2（テンキー） */}
+              {/* ★【修正】key={question.id} でテンキーを毎回リセット！ */}
               {modeParams.type === 'move' && modeParams.lv >= 2 && (
                 <Numpad
-                  onSubmit={(h, m) => {
-                    sounds.click();
-                    checkNumpad(h, m);
-                  }}
+                  key={question.id}
+                  onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }}
                 />
               )}
 
-              {/* もどるボタン */}
               <button
                 className="btn-back"
-                onClick={() => {
-                  sounds.click();
-                  setView('home');
-                }}
+                onClick={() => { sounds.click(); setView('home'); }}
               >
                 もどる
               </button>
             </div>
           )}
 
-          {/* タイムアタック画面 */}
+          {/* タイムアタック */}
           {view === 'time-attack' && question && (
             <div>
               <div className="message-box">
@@ -607,13 +586,13 @@
               <Clock totalMinutes={question.displayMinutes} showHint={false} />
 
               {timeLeft > 0 ? (
-                <Numpad onSubmit={handleTaAnswer} />
+                {/* ★【修正】key={question.id} でテンキーを毎回リセット！ */}
+                <Numpad key={question.id} onSubmit={handleTaAnswer} />
               ) : (
                 <div>
                   <div className="message-box">
                     おわり！ スコア {score}
                   </div>
-
                   <button
                     className="menu-btn btn-attack"
                     onClick={() => {
@@ -630,10 +609,7 @@
 
               <button
                 className="btn-back"
-                onClick={() => {
-                  sounds.click();
-                  setView('home');
-                }}
+                onClick={() => { sounds.click(); setView('home'); }}
               >
                 やめる
               </button>
@@ -646,6 +622,7 @@
               <h1>シールてちょう</h1>
 
               <div className="notebook">
+                {/* ★【修正】表示を100個に！ */}
                 <p style={{margin: '0 0 10px 0', fontWeight: 'bold'}}>あつめた数: {unlockedStickers.length} / 100</p>
                 <div className="sticker-grid">
                   {ALL_STICKERS.map((s) => {
@@ -673,10 +650,7 @@
 
               <button
                 className="btn-back"
-                onClick={() => {
-                  sounds.click();
-                  setView('home');
-                }}
+                onClick={() => { sounds.click(); setView('home'); }}
               >
                 もどる
               </button>
