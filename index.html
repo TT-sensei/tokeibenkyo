@@ -439,14 +439,12 @@
         }
       };
 
-      // 修正: タイムアタックを2種類（よむ・トラベル）に対応
       const startTimeAttack = (taType) => {
         sounds.click();
         setView('time-attack');
         setScore(0);
         setCombo(0);
         
-        // よむ=60秒、トラベル=90秒
         const initialTime = taType === 'move' ? 90 : 60;
         setTimeLeft(initialTime);
         
@@ -510,6 +508,13 @@
         }
       };
 
+      // タイムアタック報酬計算用関数
+      const getTaRewardInfo = () => {
+        const base = modeParams.type === 'move' ? score * 5 : score * 2;
+        const bonus = score >= 5 ? 10 : 0; // 5問以上で10個のフィーバーボーナス！
+        return { base, bonus, total: base + bonus };
+      };
+
       return (
         <div className={`app-container ${bgMode}`}>
           {showSuccess && <div className="overlay"><div className="hanamaru">💮</div></div>}
@@ -540,12 +545,11 @@
                 <button className="menu-btn btn-move1" onClick={() => startGame('move', 1, 3)}>🥇 トラベル Lv1<br/><small>(時計/⚙️3)</small></button>
                 <button className="menu-btn btn-move2" onClick={() => startGame('move', 2, 4)}>🏆 トラベル Lv2<br/><small>(数字/⚙️4)</small></button>
                 
-                {/* タイムアタックを2つに分割 */}
                 <button className="menu-btn btn-ta-read" onClick={() => startTimeAttack('read')}>
-                  ⏰ よむ アタック (60びょう) <br/><small>3問せいかいで ⚙️1ゲット</small>
+                  ⏰ よむ アタック (60びょう) <br/><small>1問せいかいで ⚙️2ゲット！</small>
                 </button>
                 <button className="menu-btn btn-ta-move" onClick={() => startTimeAttack('move')}>
-                  ⏳ トラベル アタック (90びょう) <br/><small>1問せいかいで ⚙️2ゲット！どっさり！</small>
+                  ⏳ トラベル アタック (90びょう) <br/><small>1問せいかいで ⚙️5ゲット！！</small>
                 </button>
                 
                 <button className="menu-btn btn-book" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>📖 シールてちょう ({unlockedStickers.length}/100)</button>
@@ -625,7 +629,6 @@
                 のこり {timeLeft}びょう　せいかい {score}もん
               </div>
 
-              {/* タイムアタック中でも問題文（いま何時、〇分後など）をデカデカと表示 */}
               <div className="message-box ta-question">
                 {question.text}
               </div>
@@ -637,19 +640,20 @@
               ) : (
                 <div>
                   <div className="message-box">
-                    おわり！ せいかい {score}もん
+                    おわり！ せいかい {score}もん<br/>
+                    {score >= 5 ? '🎉 5問以上ボーナス ＋10！ 🎉' : ''}
                   </div>
                   <button
                     className={`menu-btn ${modeParams.type === 'move' ? 'btn-ta-move' : 'btn-ta-read'}`}
+                    style={{ fontSize: '20px', padding: '15px' }}
                     onClick={() => {
                       sounds.click();
-                      // トラベル(move)は1問正解で歯車2個！ よむ(read)は3問正解で歯車1個。
-                      const reward = modeParams.type === 'move' ? score * 2 : Math.floor(score / 3);
-                      setGears(g => g + reward);
+                      const info = getTaRewardInfo();
+                      setGears(g => g + info.total);
                       setView('home');
                     }}
                   >
-                    ほうしゅうをもらう (⚙️{modeParams.type === 'move' ? score * 2 : Math.floor(score / 3)})
+                    ほうしゅうをもらう (⚙️{getTaRewardInfo().total})
                   </button>
                 </div>
               )}
