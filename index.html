@@ -45,6 +45,7 @@
     .btn-move2 { background: #60a3bc; }
     .btn-ta-read { background: #e55039; grid-column: span 2; font-size: 18px; }
     .btn-ta-move { background: #9b59b6; grid-column: span 2; font-size: 18px; }
+    .btn-teacher { background: #9b59b6; grid-column: span 2; font-size: 18px; padding: 15px; } /* フリーモード追加 */
     .btn-book { background: #f6b93b; font-size: 18px; color: #333; }
     .btn-record { background: #f39c12; font-size: 18px; color: #fff; }
     .btn-reset { background: #7f8c8d; grid-column: span 2; padding: 10px; font-size: 14px; margin-top: 20px;}
@@ -54,7 +55,7 @@
       margin: 10px auto; width: 220px; height: 220px; background: white;
       border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.2); position: relative;
     }
-    .clock-hand { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .clock-hand { transition: transform 0.1s linear; }
     .clock-hint { fill: #b2bec3; font-size: 6px; font-weight: bold; }
 
     /* UIパーツ */
@@ -74,6 +75,14 @@
     .control-btn { background: #ffeaa7; border: 2px solid #fdcb6e; color: #d63031; font-size: 16px; font-weight: bold; padding: 8px 10px; border-radius: 10px; cursor: pointer; box-shadow: 0 3px 0 #fdcb6e; }
     .control-btn:active { transform: translateY(3px); box-shadow: none; }
     .btn-hint { background: #ffeaa7; border: none; border-radius: 15px; padding: 5px 15px; font-weight: bold; box-shadow: 0 3px 0 #fdcb6e; margin-bottom: 10px; cursor: pointer; }
+
+    /* フリーモード用 */
+    .teacher-panel { background: #f8c291; padding: 20px; border-radius: 15px; border: 4px solid #e55039; max-width: 500px; margin: 0 auto; }
+    .teacher-title { color: #c0392b; font-size: 24px; font-weight: bold; margin-bottom: 15px; text-shadow: 1px 1px 0 #fff; }
+    .teacher-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+    .teacher-btn { background: #fad390; border: 2px solid #e58e26; border-radius: 10px; padding: 10px; font-size: 18px; font-weight: bold; color: #b71540; cursor: pointer; box-shadow: 0 4px 0 #e58e26; }
+    .teacher-btn:active { transform: translateY(4px); box-shadow: none; }
+    .teacher-input { width: 100%; padding: 10px; font-size: 18px; border-radius: 8px; border: 2px solid #e58e26; margin-bottom: 10px; text-align: center; box-sizing: border-box; }
 
     /* テンキー */
     .numpad-container { max-width: 300px; margin: 0 auto; background: rgba(255,255,255,0.9); padding: 15px; border-radius: 15px; }
@@ -162,7 +171,7 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect, useRef, useCallback } = React; // ← useCallbackを追加
 
     const ALL_STICKERS = [
       "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯",
@@ -213,7 +222,7 @@
       while (totalMinutes < 0) totalMinutes += 24 * 60;
       const h24 = Math.floor(totalMinutes / 60) % 24;
       const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-      const m = totalMinutes % 60;
+      const m = Math.round(totalMinutes % 60); // 念のため丸める
       return { h12, h24, m };
     };
 
@@ -225,26 +234,79 @@
       return 'bg-night';
     };
 
-    const Clock = ({ totalMinutes, showHint }) => {
+    // アップグレード版Clock（ドラッグ対応＋ステップ数指定）
+    const Clock = ({ totalMinutes, showHint, onDrag, interactive, step = 5 }) => {
+      const svgRef = useRef(null);
+      const [isDragging, setIsDragging] = useState(false);
+
+      const updateDrag = useCallback((e) => {
+        if (!svgRef.current || !onDrag) return;
+        const rect = svgRef.current.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+        const angle = Math.atan2(dy, dx);
+        const degrees = angle * (180 / Math.PI);
+        const normalized = (degrees + 360 + 90) % 360;
+        
+        let newMinutes = Math.round((normalized / 6) / step) * step;
+        if (newMinutes === 60) newMinutes = 0;
+
+        const currentM = Math.round(totalMinutes) % 60;
+        let delta = newMinutes - currentM;
+        if (delta > 30) delta -= 60;
+        if (delta < -30) delta += 60;
+        
+        if (delta !== 0) {
+          sounds.tick();
+          onDrag(totalMinutes + delta);
+        }
+      }, [totalMinutes, onDrag, step]);
+
+      const handlePointerDown = (e) => {
+        if (!interactive) return;
+        setIsDragging(true); updateDrag(e);
+      };
+
+      useEffect(() => {
+        const handleMove = (e) => { if (isDragging) updateDrag(e); };
+        const handleUp = () => setIsDragging(false);
+        
+        if (isDragging) {
+          window.addEventListener('mousemove', handleMove, {passive: false});
+          window.addEventListener('touchmove', handleMove, {passive: false});
+          window.addEventListener('mouseup', handleUp);
+          window.addEventListener('touchend', handleUp);
+        }
+        return () => {
+          window.removeEventListener('mousemove', handleMove);
+          window.removeEventListener('touchmove', handleMove);
+          window.removeEventListener('mouseup', handleUp);
+          window.removeEventListener('touchend', handleUp);
+        };
+      }, [isDragging, updateDrag]);
+
       const hourAngle = totalMinutes * 0.5;
       const minuteAngle = totalMinutes * 6;
+
       return (
         <div className="clock-container">
-          <svg viewBox="0 0 100 100" width="100%" height="100%">
+          <svg viewBox="0 0 100 100" width="100%" height="100%" ref={svgRef} 
+               onMouseDown={handlePointerDown} onTouchStart={handlePointerDown} 
+               style={{touchAction: 'none', cursor: interactive ? 'pointer' : 'default'}}>
             <circle cx="50" cy="50" r="48" fill="white" stroke="#ffb8b8" strokeWidth="4" />
             {[...Array(12)].map((_, i) => {
-              const num = i + 1;
-              const angle = (num * 30 - 90) * (Math.PI / 180);
-              const x = 50 + 32 * Math.cos(angle);
-              const y = 50 + 32 * Math.sin(angle);
-              return <text key={num} x={x} y={y} fontSize="10" fill="#ff6b6b" fontWeight="bold" textAnchor="middle" dominantBaseline="central">{num}</text>;
+              const num = i + 1; const angle = (num * 30 - 90) * (Math.PI / 180);
+              return <text key={num} x={50 + 32 * Math.cos(angle)} y={50 + 32 * Math.sin(angle)} fontSize="10" fill="#ff6b6b" fontWeight="bold" textAnchor="middle" dominantBaseline="central">{num}</text>;
             })}
             {showHint && [...Array(12)].map((_, i) => {
-              const num = i === 0 ? 60 : i * 5;
-              const angle = (i * 30 - 90) * (Math.PI / 180);
-              const x = 50 + 44 * Math.cos(angle);
-              const y = 50 + 44 * Math.sin(angle);
-              return <text key={`h-${num}`} x={x} y={y} className="clock-hint" textAnchor="middle" dominantBaseline="central">{num}</text>;
+              const num = i === 0 ? 60 : i * 5; const angle = (i * 30 - 90) * (Math.PI / 180);
+              return <text key={`h-${num}`} x={50 + 44 * Math.cos(angle)} y={50 + 44 * Math.sin(angle)} className="clock-hint" textAnchor="middle" dominantBaseline="central">{num}</text>;
             })}
             {[...Array(60)].map((_, i) => {
               if (i % 5 === 0) return null;
@@ -253,6 +315,7 @@
             })}
             <line className="clock-hand" x1="50" y1="50" x2="50" y2="28" stroke="#ff6b6b" strokeWidth="4" strokeLinecap="round" transform={`rotate(${hourAngle} 50 50)`} />
             <line className="clock-hand" x1="50" y1="50" x2="50" y2="16" stroke="#4ecdc4" strokeWidth="3" strokeLinecap="round" transform={`rotate(${minuteAngle} 50 50)`} />
+            <circle cx="50" cy="50" r="6" fill="#4ecdc4" />
             <circle cx="50" cy="50" r="3" fill="#333" />
           </svg>
         </div>
@@ -392,7 +455,7 @@
       const [score, setScore] = useState(0);
       const timerRef = useRef(null);
       
-      // 今回のプレイの成績を記録するためのRef（問題のロジックは邪魔しません）
+      // 今回のプレイの成績を記録するためのRef
       const sessionRef = useRef(null);
 
       useEffect(() => {
@@ -404,7 +467,7 @@
       }, [gears, unlockedStickers, playHistory]);
 
       useEffect(() => {
-        if (view === 'home' || view === 'notebook' || view === 'record') setBgMode('bg-day');
+        if (view === 'home' || view === 'notebook' || view === 'record' || view === 'freemode') setBgMode('bg-day');
         else if (question) setBgMode(getBgClass(question.displayMinutes));
       }, [view, question]);
 
@@ -418,7 +481,6 @@
         return 'クエスト';
       };
 
-      // プレイ記録を保存してホームに戻る
       const saveSessionAndGoHome = () => {
         if (sessionRef.current && sessionRef.current.attempts > 0) {
           const newEntry = {
@@ -428,7 +490,7 @@
             misses: sessionRef.current.misses,
             time: "きょう"
           };
-          setPlayHistory(prev => [newEntry, ...prev].slice(0, 8)); // 最新8件だけ保存
+          setPlayHistory(prev => [newEntry, ...prev].slice(0, 8));
         }
         sessionRef.current = null;
         setView('home');
@@ -529,9 +591,7 @@
         sounds.click();
         const params = { type, lv, reward };
         setModeParams(params); setMistakes(0); setCombo(0);
-        
         sessionRef.current = { name: getModeName(type, lv), attempts: 0, misses: 0 };
-        
         generateQuestion(params);
         setView('game');
       };
@@ -556,7 +616,6 @@
 
       const startTimeAttack = (taType) => {
         sounds.click(); setView('time-attack'); setScore(0); setCombo(0);
-        
         sessionRef.current = { name: taType === 'move' ? '⏳ まえ・あと アタック' : '⏰ よむ アタック', attempts: 0, misses: 0 };
 
         const initialTime = taType === 'move' ? 90 : 60; setTimeLeft(initialTime);
@@ -613,6 +672,61 @@
 
       const isInteractiveMode = modeParams && (modeParams.type === 'set' || (modeParams.type === 'move' && modeParams.lv === 1));
 
+      // 追加：フリーモードパネル用コンポーネント
+      const FreeModePanel = () => {
+        const [tMins, setTMins] = useState(9 * 60);
+        const [tQuest, setTQuest] = useState("");
+        const [showAns, setShowAns] = useState(false);
+
+        const tAnimate = (delta) => {
+          const steps = 10; const stepAmt = delta / steps; let count = 0;
+          const tick = () => { setTMins(p => p + stepAmt); count++; if (count < steps) requestAnimationFrame(tick); };
+          requestAnimationFrame(tick);
+        };
+
+        const time = calcTime(tMins);
+        const digitalTime = `${time.h12}:${String(time.m).padStart(2, '0')}`;
+
+        return (
+          <div className="teacher-panel">
+            <div className="teacher-title">⏱️ 時計フリーモード</div>
+            
+            <Clock totalMinutes={tMins} interactive={true} onDrag={setTMins} showHint={true} step={1} />
+            
+            <div style={{
+              fontSize: '48px', fontWeight: 'bold', color: '#2c3e50', 
+              fontFamily: 'monospace', margin: '5px 0 20px 0', 
+              textShadow: '2px 2px 0px rgba(255,255,255,0.8)'
+            }}>
+              {digitalTime}
+            </div>
+
+            <div className="teacher-controls">
+              <button className="teacher-btn" onClick={() => { sounds.tick(); tAnimate(-60); }}>−1時間</button>
+              <button className="teacher-btn" onClick={() => { sounds.tick(); tAnimate(60); }}>＋1時間</button>
+              <button className="teacher-btn" onClick={() => { sounds.tick(); tAnimate(-1); }}>−1分</button>
+              <button className="teacher-btn" onClick={() => { sounds.tick(); tAnimate(1); }}>＋1分</button>
+            </div>
+
+            <div style={{background: 'white', padding: '15px', borderRadius: '10px'}}>
+              <input type="text" className="teacher-input" placeholder="問題を入力 (例: 10分あとは？)" 
+                     value={tQuest} onChange={e => setTQuest(e.target.value)} />
+              
+              <button className="btn-back" style={{width: '100%', margin: '0 0 10px 0', background: showAns ? '#27ae60' : '#2980b9', boxShadow: `0 4px 0 ${showAns ? '#2ecc71' : '#3498db'}`}}
+                      onClick={() => { sounds.click(); setShowAns(!showAns); }}>
+                {showAns ? "答えをかくす" : "💡 答えをみせる"}
+              </button>
+              
+              {showAns && <div style={{fontSize: '32px', fontWeight: 'bold', color: '#c0392b'}}>
+                {calcTime(tMins).h12}じ {String(calcTime(tMins).m).padStart(2, '0')}ふん
+              </div>}
+            </div>
+            
+            <button className="btn-back" style={{background: '#7f8c8d', boxShadow: '0 4px 0 #95a5a6', width: '100%'}} onClick={() => { sounds.click(); setView('home'); }}>おわる</button>
+          </div>
+        );
+      };
+
       return (
         <div className={`app-container ${bgMode}`}>
           {showSuccess && <div className="overlay"><div className="hanamaru">💮</div></div>}
@@ -627,7 +741,7 @@
             </div>
           )}
 
-          {view !== 'record' && (
+          {view !== 'record' && view !== 'freemode' && (
             <div className="status-bar">
               ⚙️ {gears}こ {combo > 1 && <span className="combo-text">🔥{combo}連勝!</span>}
             </div>
@@ -651,6 +765,10 @@
                   ⏳ まえ・あと アタック (90びょう) <br/><small>1問せいかいで ⚙️6ゲット！！</small>
                 </button>
                 
+                <button className="menu-btn btn-teacher" onClick={() => { sounds.click(); setView('freemode'); setMessage(''); }}>
+                  ⏱️ 時計フリーモード <br/><small>自由に動かせるよ</small>
+                </button>
+
                 <button className="menu-btn btn-book" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>📖 シールてちょう<br/>({unlockedStickers.length}/100)</button>
                 <button className="menu-btn btn-record" onClick={() => { sounds.click(); setView('record'); setMessage(''); }}>🔍 たんていのきろく</button>
                 
@@ -662,7 +780,13 @@
           {view === 'game' && question && (
             <div>
               <div className="message-box">{message}</div>
-              <Clock totalMinutes={isInteractiveMode ? interactiveMins : question.displayMinutes} showHint={showHint} />
+              <Clock 
+                totalMinutes={isInteractiveMode ? interactiveMins : question.displayMinutes} 
+                showHint={showHint} 
+                interactive={isInteractiveMode}
+                onDrag={setInteractiveMins} 
+                step={5} 
+              />
               
               {isInteractiveMode && (
                 <div className="controls">
@@ -743,6 +867,8 @@
               onBack={() => { sounds.click(); setView('home'); }} 
             />
           )}
+
+          {view === 'freemode' && <FreeModePanel />}
 
         </div>
       );
