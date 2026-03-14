@@ -45,7 +45,7 @@
     .btn-move2 { background: #60a3bc; }
     .btn-ta-read { background: #e55039; grid-column: span 2; font-size: 18px; }
     .btn-ta-move { background: #9b59b6; grid-column: span 2; font-size: 18px; }
-    .btn-teacher { background: #9b59b6; grid-column: span 2; font-size: 18px; padding: 15px; } /* フリーモード追加 */
+    .btn-teacher { background: #9b59b6; grid-column: span 2; font-size: 18px; padding: 15px; }
     .btn-book { background: #f6b93b; font-size: 18px; color: #333; }
     .btn-record { background: #f39c12; font-size: 18px; color: #fff; }
     .btn-reset { background: #7f8c8d; grid-column: span 2; padding: 10px; font-size: 14px; margin-top: 20px;}
@@ -117,9 +117,7 @@
     .gacha-title { color: white; font-size: 30px; margin-bottom: 20px; font-weight: bold; text-shadow: 0 0 10px gold; animation: bounce 0.5s infinite; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
 
-    /* -------------------------------------
-       たんていの きろく (レコード画面) 
-       ------------------------------------- */
+    /* たんていの きろく (レコード画面) */
     .detective-container {
       max-width: 500px; margin: 0 auto; text-align: left;
       background: #fff9c4; border: 4px solid #f39c12; border-radius: 15px;
@@ -152,9 +150,6 @@
     .btn-close-record { width: 100%; background: #7bed9f; color: #2f3542; border: none; padding: 12px; border-radius: 15px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 #2ed573; }
     .btn-close-record:active { transform: translateY(4px); box-shadow: none; }
 
-    /* -------------------------------------
-       タブレットPC・大きめ画面向けレスポンシブ
-       ------------------------------------- */
     @media (min-width: 768px) {
       .menu-grid { max-width: 600px; gap: 15px; }
       .menu-btn { font-size: 18px; padding: 20px 10px; }
@@ -440,6 +435,9 @@
       
       const [modeParams, setModeParams] = useState(null);
       const [question, setQuestion] = useState(null);
+      const [questionCount, setQuestionCount] = useState(1); // クエストの進行度(5問まで)
+      const MAX_QUESTIONS = 5;
+
       const [message, setMessage] = useState('');
       const [showSuccess, setShowSuccess] = useState(false);
       const [showHint, setShowHint] = useState(false);
@@ -513,6 +511,24 @@
         triggerSuccess();
       };
 
+      const handleCorrectQuest = () => {
+        addReward(modeParams.reward);
+        setMistakes(0);
+        
+        if (questionCount >= MAX_QUESTIONS) {
+          setTimeout(() => {
+            sounds.gachaSR();
+            setMessage('🎉 クエスト クリア！！ 🎉 ホームにもどるよ！');
+            setTimeout(() => {
+              saveSessionAndGoHome();
+            }, 3000);
+          }, 1200);
+        } else {
+          setQuestionCount(c => c + 1);
+          setTimeout(() => generateQuestion(modeParams), 1500);
+        }
+      };
+
       const handleMistake = () => {
         sounds.wrong();
         setCombo(0);
@@ -584,25 +600,25 @@
       const startGame = (type, lv, reward) => {
         sounds.click();
         const params = { type, lv, reward };
-        setModeParams(params); setMistakes(0); setCombo(0);
+        setModeParams(params); setMistakes(0); setCombo(0); setQuestionCount(1);
         sessionRef.current = { name: getModeName(type, lv), attempts: 0, misses: 0 };
         generateQuestion(params);
         setView('game');
       };
 
       const checkReadLv1 = (ansH, ansM) => {
-        if (!question) return;
-        if (ansH === question.correctH && ansM === question.correctM) { addReward(modeParams.reward); setMistakes(0); setTimeout(() => generateQuestion(modeParams), 1500); } 
+        if (!question || questionCount > MAX_QUESTIONS) return;
+        if (ansH === question.correctH && ansM === question.correctM) handleCorrectQuest(); 
         else handleMistake();
       };
       const checkNumpad = (h, m) => {
-        if (!question) return;
-        if (h === question.correctH && m === question.correctM) { addReward(modeParams.reward); setMistakes(0); setTimeout(() => generateQuestion(modeParams), 1500); } 
+        if (!question || questionCount > MAX_QUESTIONS) return;
+        if (h === question.correctH && m === question.correctM) handleCorrectQuest(); 
         else handleMistake();
       };
       const checkInteractive = () => {
-        if (!question) return;
-        if ((interactiveMins % 720 + 720) % 720 === (question.targetTotal % 720 + 720) % 720) { addReward(modeParams.reward); setMistakes(0); setTimeout(() => generateQuestion(modeParams), 1500); } 
+        if (!question || questionCount > MAX_QUESTIONS) return;
+        if ((interactiveMins % 720 + 720) % 720 === (question.targetTotal % 720 + 720) % 720) handleCorrectQuest(); 
         else handleMistake();
       };
 
@@ -637,7 +653,6 @@
         }
       };
 
-      // 10連ガチャ対応
       const spinGacha = (times = 1) => {
         const cost = times * 10;
         if (gears >= cost) {
@@ -680,7 +695,6 @@
 
       const isInteractiveMode = modeParams && (modeParams.type === 'set' || (modeParams.type === 'move' && modeParams.lv === 1));
 
-      // 答えの表示をなくしたフリーモードパネル
       const FreeModePanel = () => {
         const [tMins, setTMins] = useState(9 * 60);
         const [tQuest, setTQuest] = useState("");
@@ -790,6 +804,9 @@
 
           {view === 'game' && question && (
             <div>
+              <div className="status-bar" style={{marginBottom: '10px', background: '#ffeaa7', border: '2px solid #fdcb6e', color: '#d63031'}}>
+                クエスト: {Math.min(questionCount, MAX_QUESTIONS)} / {MAX_QUESTIONS} もんめ
+              </div>
               <div className="message-box">{message}</div>
               <Clock 
                 totalMinutes={isInteractiveMode ? interactiveMins : question.displayMinutes} 
@@ -799,7 +816,7 @@
                 step={5} 
               />
               
-              {isInteractiveMode && (
+              {isInteractiveMode && questionCount <= MAX_QUESTIONS && (
                 <div className="controls">
                   <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-60); }}>⏪ 1じかん</button>
                   <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-5); }}>◁ 5ふん</button>
@@ -808,9 +825,9 @@
                 </div>
               )}
 
-              {!showHint && gears >= 1 && <button className="btn-hint" onClick={useHint}>💡 ヒントをみる (⚙️1)</button>}
+              {!showHint && gears >= 1 && questionCount <= MAX_QUESTIONS && <button className="btn-hint" onClick={useHint}>💡 ヒントをみる (⚙️1)</button>}
 
-              {modeParams && modeParams.type === 'read' && modeParams.lv <= 1 && question.choices && (
+              {modeParams && modeParams.type === 'read' && modeParams.lv <= 1 && question.choices && questionCount <= MAX_QUESTIONS && (
                 <div className="choices">
                   {question.choices.map((c, i) => (
                     <button key={i} className="choice-btn" onClick={() => { sounds.click(); checkReadLv1(c.h, c.m); }}>{c.h}じ {c.m}ふん</button>
@@ -818,11 +835,11 @@
                 </div>
               )}
 
-              {modeParams && modeParams.type === 'read' && modeParams.lv >= 2 && <Numpad key={question.id} onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />}
-              {isInteractiveMode && <button className="choice-btn" onClick={() => { sounds.click(); checkInteractive(); }}>これだ！</button>}
-              {modeParams && modeParams.type === 'move' && modeParams.lv >= 2 && <Numpad key={question.id} onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />}
+              {modeParams && modeParams.type === 'read' && modeParams.lv >= 2 && questionCount <= MAX_QUESTIONS && <Numpad key={question.id} onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />}
+              {isInteractiveMode && questionCount <= MAX_QUESTIONS && <button className="choice-btn" onClick={() => { sounds.click(); checkInteractive(); }}>これだ！</button>}
+              {modeParams && modeParams.type === 'move' && modeParams.lv >= 2 && questionCount <= MAX_QUESTIONS && <Numpad key={question.id} onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />}
 
-              <button className="btn-back" onClick={() => { sounds.click(); saveSessionAndGoHome(); }}>もどる</button>
+              <button className="btn-back" onClick={() => { sounds.click(); saveSessionAndGoHome(); }}>途中でやめる</button>
             </div>
           )}
 
