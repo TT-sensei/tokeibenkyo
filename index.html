@@ -25,9 +25,10 @@
     .status-bar {
       background: rgba(255,255,255,0.9); padding: 8px 15px; border-radius: 20px; color: #333;
       display: inline-flex; align-items: center; gap: 15px; font-size: 20px; font-weight: bold;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 15px; flex-wrap: wrap; justify-content: center;
     }
     .combo-text { color: #ff4757; animation: bounce 0.5s infinite alternate; }
+    .progress-text { color: #0984e3; background: #e0f7fa; padding: 2px 10px; border-radius: 12px; }
 
     /* ホーム画面のオシャレなボタン群 */
     .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 500px; margin: 0 auto; }
@@ -45,7 +46,7 @@
     .btn-move2 { background: #60a3bc; }
     .btn-ta-read { background: #e55039; grid-column: span 2; font-size: 18px; }
     .btn-ta-move { background: #9b59b6; grid-column: span 2; font-size: 18px; }
-    .btn-teacher { background: #9b59b6; grid-column: span 2; font-size: 18px; padding: 15px; } /* フリーモード追加 */
+    .btn-teacher { background: #9b59b6; grid-column: span 2; font-size: 18px; padding: 15px; } 
     .btn-book { background: #f6b93b; font-size: 18px; color: #333; }
     .btn-record { background: #f39c12; font-size: 18px; color: #fff; }
     .btn-reset { background: #7f8c8d; grid-column: span 2; padding: 10px; font-size: 14px; margin-top: 20px;}
@@ -171,7 +172,7 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef, useCallback } = React; // ← useCallbackを追加
+    const { useState, useEffect, useRef, useCallback } = React;
 
     const ALL_STICKERS = [
       "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯",
@@ -222,7 +223,7 @@
       while (totalMinutes < 0) totalMinutes += 24 * 60;
       const h24 = Math.floor(totalMinutes / 60) % 24;
       const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-      const m = Math.round(totalMinutes % 60); // 念のため丸める
+      const m = Math.round(totalMinutes % 60); 
       return { h12, h24, m };
     };
 
@@ -234,7 +235,6 @@
       return 'bg-night';
     };
 
-    // アップグレード版Clock（ドラッグ対応＋ステップ数指定）
     const Clock = ({ totalMinutes, showHint, onDrag, interactive, step = 5 }) => {
       const svgRef = useRef(null);
       const [isDragging, setIsDragging] = useState(false);
@@ -367,9 +367,6 @@
       );
     };
 
-    /* -------------------------------------
-       たんていのきろく (コンポーネント)
-       ------------------------------------- */
     const DetectiveRecord = ({ onBack, totalGears, questData }) => {
       const getRank = (gears) => {
         if (gears >= 200) return "マスターたんてい";
@@ -427,7 +424,6 @@
       );
     };
 
-    // セーブデータ取得関数
     const getSafeGears = () => { try { return parseInt(localStorage.getItem('gears')) || 0; } catch (e) { return 0; } };
     const getSafeStickers = () => { try { const s = localStorage.getItem('unlockedStickers'); return s ? JSON.parse(s) : []; } catch (e) { return []; } };
     const getSafeHistory = () => { try { const h = localStorage.getItem('playHistory'); return h ? JSON.parse(h) : []; } catch (e) { return []; } };
@@ -442,6 +438,7 @@
       
       const [combo, setCombo] = useState(0);
       const [mistakes, setMistakes] = useState(0);
+      const [questProgress, setQuestProgress] = useState(1); // 5問クエスト用
       
       const [modeParams, setModeParams] = useState(null);
       const [question, setQuestion] = useState(null);
@@ -455,7 +452,6 @@
       const [score, setScore] = useState(0);
       const timerRef = useRef(null);
       
-      // 今回のプレイの成績を記録するためのRef
       const sessionRef = useRef(null);
 
       useEffect(() => {
@@ -502,19 +498,26 @@
         setTimeout(() => setShowSuccess(false), 1200);
       };
 
-      const addReward = (amount) => {
+      const addReward = (amount, isFinished = false) => {
         let earned = amount || 1;
         const newCombo = combo + 1;
         setCombo(newCombo);
         
         if (sessionRef.current) sessionRef.current.attempts += 1;
 
+        let msg = "";
         if (newCombo > 0 && newCombo % 3 === 0) {
           earned += 1;
-          setMessage(`大せいかい！🔥3コンボボーナス！ (+${earned}⚙️)`);
+          msg = `大せいかい！🔥3コンボ！ (+${earned}⚙️)`;
         } else {
-          setMessage(`大せいかい！ (+${earned}⚙️)`);
+          msg = `大せいかい！ (+${earned}⚙️)`;
         }
+
+        if (isFinished) {
+          msg += " 🎉クエストクリア！";
+        }
+
+        setMessage(msg);
         setGears(g => g + earned);
         triggerSuccess();
       };
@@ -532,8 +535,16 @@
         if (newMistakes >= 3 && view !== 'time-attack') {
           setGears(g => Math.max(0, g - 1));
           setMistakes(0);
-          setMessage('3かいミス… ⚙️1こ ぼっしゅう😭 べつのもんだいにするね');
-          setTimeout(() => generateQuestion(modeParams), 2000);
+
+          const isFinished = questProgress >= 5;
+          if (isFinished) {
+            setMessage('3かいミス… クエストおわり！ ホームにもどるよ');
+            setTimeout(() => saveSessionAndGoHome(), 2000);
+          } else {
+            setMessage('3かいミス… ⚙️1こ ぼっしゅう😭 べつのもんだいにするね');
+            setQuestProgress(p => p + 1);
+            setTimeout(() => generateQuestion(modeParams), 2000);
+          }
         } else {
           setMistakes(newMistakes);
           setMessage(`${question.text} ❌ざんねん!(${newMistakes}ミス)`);
@@ -590,25 +601,38 @@
       const startGame = (type, lv, reward) => {
         sounds.click();
         const params = { type, lv, reward };
-        setModeParams(params); setMistakes(0); setCombo(0);
+        setModeParams(params); setMistakes(0); setCombo(0); setQuestProgress(1);
         sessionRef.current = { name: getModeName(type, lv), attempts: 0, misses: 0 };
         generateQuestion(params);
         setView('game');
       };
 
+      const handleCorrect = () => {
+        const isFinished = questProgress >= 5;
+        addReward(modeParams.reward, isFinished);
+        setMistakes(0);
+
+        if (isFinished) {
+          setTimeout(() => saveSessionAndGoHome(), 2000);
+        } else {
+          setQuestProgress(p => p + 1);
+          setTimeout(() => generateQuestion(modeParams), 1500);
+        }
+      };
+
       const checkReadLv1 = (ansH, ansM) => {
         if (!question) return;
-        if (ansH === question.correctH && ansM === question.correctM) { addReward(modeParams.reward); setMistakes(0); setTimeout(() => generateQuestion(modeParams), 1500); } 
+        if (ansH === question.correctH && ansM === question.correctM) handleCorrect();
         else handleMistake();
       };
       const checkNumpad = (h, m) => {
         if (!question) return;
-        if (h === question.correctH && m === question.correctM) { addReward(modeParams.reward); setMistakes(0); setTimeout(() => generateQuestion(modeParams), 1500); } 
+        if (h === question.correctH && m === question.correctM) handleCorrect();
         else handleMistake();
       };
       const checkInteractive = () => {
         if (!question) return;
-        if ((interactiveMins % 720 + 720) % 720 === (question.targetTotal % 720 + 720) % 720) { addReward(modeParams.reward); setMistakes(0); setTimeout(() => generateQuestion(modeParams), 1500); } 
+        if ((interactiveMins % 720 + 720) % 720 === (question.targetTotal % 720 + 720) % 720) handleCorrect();
         else handleMistake();
       };
 
@@ -643,19 +667,32 @@
         }
       };
 
-      const spinGacha = () => {
-        if (gears >= 10) {
-          setGears(g => g - 10);
-          const r = Math.random(); let targetRarity = 'N';
-          if (r > 0.7 && r <= 0.95) targetRarity = 'R';
-          if (r > 0.95) targetRarity = 'SR';
-          const pool = ALL_STICKERS.filter(s => s.rarity === targetRarity);
-          const sticker = pool[Math.floor(Math.random() * pool.length)];
-          const isNew = !unlockedStickers.includes(sticker.id);
-          if (isNew) setUnlockedStickers([...unlockedStickers, sticker.id]);
-          if (targetRarity === 'SR') sounds.gachaSR(); else sounds.gachaN();
-          setGachaResult({ ...sticker, isNew });
-        } else sounds.wrong();
+      const spinGacha = (times = 1) => {
+        const cost = times * 10;
+        if (gears >= cost) {
+          setGears(g => g - cost);
+          let results = [];
+          let newUnlocked = [...unlockedStickers];
+          let hasSR = false;
+
+          for (let i = 0; i < times; i++) {
+            const r = Math.random(); let targetRarity = 'N';
+            if (r > 0.7 && r <= 0.95) targetRarity = 'R';
+            if (r > 0.95) targetRarity = 'SR';
+            const pool = ALL_STICKERS.filter(s => s.rarity === targetRarity);
+            const sticker = pool[Math.floor(Math.random() * pool.length)];
+            const isNew = !newUnlocked.includes(sticker.id);
+            if (isNew) newUnlocked.push(sticker.id);
+            results.push({ ...sticker, isNew });
+            if (targetRarity === 'SR') hasSR = true;
+          }
+          
+          setUnlockedStickers(newUnlocked);
+          if (hasSR) sounds.gachaSR(); else sounds.gachaN();
+          setGachaResult(results);
+        } else {
+          sounds.wrong();
+        }
       };
 
       const resetGame = () => {
@@ -672,11 +709,9 @@
 
       const isInteractiveMode = modeParams && (modeParams.type === 'set' || (modeParams.type === 'move' && modeParams.lv === 1));
 
-      // 追加：フリーモードパネル用コンポーネント
       const FreeModePanel = () => {
         const [tMins, setTMins] = useState(9 * 60);
         const [tQuest, setTQuest] = useState("");
-        const [showAns, setShowAns] = useState(false);
 
         const tAnimate = (delta) => {
           const steps = 10; const stepAmt = delta / steps; let count = 0;
@@ -708,21 +743,12 @@
               <button className="teacher-btn" onClick={() => { sounds.tick(); tAnimate(1); }}>＋1分</button>
             </div>
 
-            <div style={{background: 'white', padding: '15px', borderRadius: '10px'}}>
+            <div style={{background: 'white', padding: '15px', borderRadius: '10px', marginBottom: '15px'}}>
               <input type="text" className="teacher-input" placeholder="問題を入力 (例: 10分あとは？)" 
-                     value={tQuest} onChange={e => setTQuest(e.target.value)} />
-              
-              <button className="btn-back" style={{width: '100%', margin: '0 0 10px 0', background: showAns ? '#27ae60' : '#2980b9', boxShadow: `0 4px 0 ${showAns ? '#2ecc71' : '#3498db'}`}}
-                      onClick={() => { sounds.click(); setShowAns(!showAns); }}>
-                {showAns ? "答えをかくす" : "💡 答えをみせる"}
-              </button>
-              
-              {showAns && <div style={{fontSize: '32px', fontWeight: 'bold', color: '#c0392b'}}>
-                {calcTime(tMins).h12}じ {String(calcTime(tMins).m).padStart(2, '0')}ふん
-              </div>}
+                     value={tQuest} onChange={e => setTQuest(e.target.value)} style={{marginBottom: 0}} />
             </div>
             
-            <button className="btn-back" style={{background: '#7f8c8d', boxShadow: '0 4px 0 #95a5a6', width: '100%'}} onClick={() => { sounds.click(); setView('home'); }}>おわる</button>
+            <button className="btn-back" style={{background: '#7f8c8d', boxShadow: '0 4px 0 #95a5a6', width: '100%', marginTop: 0}} onClick={() => { sounds.click(); setView('home'); }}>おわる</button>
           </div>
         );
       };
@@ -732,150 +758,8 @@
           {showSuccess && <div className="overlay"><div className="hanamaru">💮</div></div>}
           
           {gachaResult && (
-            <div className="overlay gacha-bg">
+            <div className="overlay gacha-bg" style={{ overflowY: 'auto', padding: '20px' }}>
               <div className="gacha-title">
-                {gachaResult.isNew ? (gachaResult.rarity === 'SR' ? '超・大アタリ！！' : gachaResult.rarity === 'R' ? '大アタリ！' : 'シールゲット！') : 'かぶり！(もう持ってるよ)'}
-              </div>
-              <div className={`sticker gacha-item ${gachaResult.rarity}`}>{gachaResult.char}</div>
-              <button className="btn-back" style={{marginTop: '50px', position:'relative', zIndex:10}} onClick={() => {sounds.click(); setGachaResult(null);}}>とじる</button>
-            </div>
-          )}
-
-          {view !== 'record' && view !== 'freemode' && (
-            <div className="status-bar">
-              ⚙️ {gears}こ {combo > 1 && <span className="combo-text">🔥{combo}連勝!</span>}
-            </div>
-          )}
-          
-          {view === 'home' && (
-            <div>
-              <h1>じかんたんてい</h1>
-              <div className="menu-grid">
-                <button className="menu-btn btn-easy" onClick={() => startGame('read', 0, 1)}>🐣 やさしい<br/><small>(⚙️1)</small></button>
-                <button className="menu-btn btn-read1" onClick={() => startGame('read', 1, 2)}>🥉 よむ Lv1<br/><small>(3択/⚙️2)</small></button>
-                <button className="menu-btn btn-set" onClick={() => startGame('set', 1, 2)}>⌚️ あわせる<br/><small>(時計/⚙️2)</small></button>
-                <button className="menu-btn btn-read2" onClick={() => startGame('read', 2, 3)}>🥈 よむ Lv2<br/><small>(数字/⚙️3)</small></button>
-                <button className="menu-btn btn-move1" onClick={() => startGame('move', 1, 4)}>🥇 まえ・あと Lv1<br/><small>(時計/⚙️4)</small></button>
-                <button className="menu-btn btn-move2" onClick={() => startGame('move', 2, 5)}>🏆 まえ・あと Lv2<br/><small>(数字/⚙️5)</small></button>
-                
-                <button className="menu-btn btn-ta-read" onClick={() => startTimeAttack('read')}>
-                  ⏰ よむ アタック (60びょう) <br/><small>1問せいかいで ⚙️3ゲット！</small>
-                </button>
-                <button className="menu-btn btn-ta-move" onClick={() => startTimeAttack('move')}>
-                  ⏳ まえ・あと アタック (90びょう) <br/><small>1問せいかいで ⚙️6ゲット！！</small>
-                </button>
-                
-                <button className="menu-btn btn-teacher" onClick={() => { sounds.click(); setView('freemode'); setMessage(''); }}>
-                  ⏱️ 時計フリーモード <br/><small>自由に動かせるよ</small>
-                </button>
-
-                <button className="menu-btn btn-book" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>📖 シールてちょう<br/>({unlockedStickers.length}/100)</button>
-                <button className="menu-btn btn-record" onClick={() => { sounds.click(); setView('record'); setMessage(''); }}>🔍 たんていのきろく</button>
-                
-                <button className="menu-btn btn-reset" onClick={resetGame}>さいしょから (リセット)</button>
-              </div>
-            </div>
-          )}
-
-          {view === 'game' && question && (
-            <div>
-              <div className="message-box">{message}</div>
-              <Clock 
-                totalMinutes={isInteractiveMode ? interactiveMins : question.displayMinutes} 
-                showHint={showHint} 
-                interactive={isInteractiveMode}
-                onDrag={setInteractiveMins} 
-                step={5} 
-              />
-              
-              {isInteractiveMode && (
-                <div className="controls">
-                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-60); }}>⏪ 1じかん</button>
-                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-5); }}>◁ 5ふん</button>
-                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p+5); }}>5ふん ▷</button>
-                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p+60); }}>1じかん ⏩</button>
-                </div>
-              )}
-
-              {!showHint && gears >= 1 && <button className="btn-hint" onClick={useHint}>💡 ヒントをみる (⚙️1)</button>}
-
-              {modeParams && modeParams.type === 'read' && modeParams.lv <= 1 && question.choices && (
-                <div className="choices">
-                  {question.choices.map((c, i) => (
-                    <button key={i} className="choice-btn" onClick={() => { sounds.click(); checkReadLv1(c.h, c.m); }}>{c.h}じ {c.m}ふん</button>
-                  ))}
-                </div>
-              )}
-
-              {modeParams && modeParams.type === 'read' && modeParams.lv >= 2 && <Numpad key={question.id} onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />}
-              {isInteractiveMode && <button className="choice-btn" onClick={() => { sounds.click(); checkInteractive(); }}>これだ！</button>}
-              {modeParams && modeParams.type === 'move' && modeParams.lv >= 2 && <Numpad key={question.id} onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />}
-
-              <button className="btn-back" onClick={() => { sounds.click(); saveSessionAndGoHome(); }}>もどる</button>
-            </div>
-          )}
-
-          {view === 'time-attack' && question && (
-            <div>
-              <div className="status-bar" style={{marginBottom: '10px'}}>
-                のこり {timeLeft}びょう　せいかい {score}もん
-              </div>
-              <div className="message-box ta-question">{question.text}</div>
-              <Clock totalMinutes={question.displayMinutes} showHint={false} />
-
-              {timeLeft > 0 ? (
-                <Numpad key={question.id} onSubmit={handleTaAnswer} />
-              ) : (
-                <div>
-                  <div className="message-box">おわり！ せいかい {score}もん<br/>{score >= 5 ? '🎉 5問以上ボーナス ＋10！ 🎉' : ''}</div>
-                  <button
-                    className={`menu-btn ${modeParams.type === 'move' ? 'btn-ta-move' : 'btn-ta-read'}`}
-                    style={{ fontSize: '20px', padding: '15px' }}
-                    onClick={() => { sounds.click(); const info = getTaRewardInfo(); setGears(g => g + info.total); saveSessionAndGoHome(); }}
-                  >
-                    ほうしゅうをもらう (⚙️{getTaRewardInfo().total})
-                  </button>
-                </div>
-              )}
-              {timeLeft > 0 && <button className="btn-back" onClick={() => { sounds.click(); if (timerRef.current) clearInterval(timerRef.current); saveSessionAndGoHome(); }}>やめる</button>}
-            </div>
-          )}
-
-          {view === 'notebook' && (
-            <div>
-              <h1>シールてちょう</h1>
-              <button className="menu-btn btn-book" onClick={spinGacha} disabled={gears < 10} style={{marginBottom: '15px', padding: '15px'}}>
-                {gears >= 10 ? '🎲 ガチャをひく (⚙️10)' : '⚙️が たりないよ'}
-              </button>
-              <div className="notebook">
-                <p style={{margin: '0 0 10px 0', fontWeight: 'bold'}}>あつめた数: {unlockedStickers.length} / 100</p>
-                <div className="sticker-grid">
-                  {ALL_STICKERS.map((s) => {
-                    const unlocked = unlockedStickers.includes(s.id);
-                    return <div key={s.id} className={`sticker ${unlocked ? s.rarity : 'locked-sticker'}`}>{unlocked ? s.char : "？"}</div>;
-                  })}
-                </div>
-              </div>
-              <button className="btn-back" onClick={() => { sounds.click(); setView('home'); }}>もどる</button>
-            </div>
-          )}
-
-          {view === 'record' && (
-            <DetectiveRecord 
-              totalGears={gears} 
-              questData={playHistory} 
-              onBack={() => { sounds.click(); setView('home'); }} 
-            />
-          )}
-
-          {view === 'freemode' && <FreeModePanel />}
-
-        </div>
-      );
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
-</body>
-</html>
+                {gachaResult.length === 1 
+                  ? (gachaResult[0].isNew ? (gachaResult[0].rarity === 'SR' ? '超・大アタリ！！' : gachaResult[0].rarity === 'R' ? '大アタリ！' : 'シールゲット！') : 'かぶり！(もう持ってるよ)')
+                  : '10連ガチャ 結果！'}
