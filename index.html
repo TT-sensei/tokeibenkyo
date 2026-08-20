@@ -98,14 +98,19 @@
     .num-key.action { background: #74b9ff; color: white; box-shadow: 0 4px 0 #0984e3; }
     .num-key.submit { background: #00b894; color: white; box-shadow: 0 4px 0 #00b894; grid-column: span 3; }
 
-    /* 手帳とシール */
-    .notebook { background: #fff9c4; border: 5px solid #ffcc80; border-radius: 10px; padding: 15px; max-width: 500px; margin: 0 auto; min-height: 200px; }
-    .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 8px; margin-top: 15px; }
-    .sticker { font-size: 28px; background: white; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-    .sticker.N { border: 2px solid #ccc; }
-    .sticker.R { border: 3px solid #c0c0c0; background: linear-gradient(135deg, #f5f7fa, #c3cfe2); box-shadow: 0 0 10px silver; }
+    /* バッジ手帳 */
+    .notebook { background: linear-gradient(145deg, #fffdf0, #fff4c2); border: 5px solid #ffcc80; border-radius: 18px; padding: 15px; max-width: 620px; margin: 0 auto; min-height: 200px; }
+    .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 10px; margin-top: 15px; }
+    .sticker-card { min-width: 0; text-align: center; }
+    .sticker { font-size: 28px; background: white; border-radius: 14px; width: 70px; height: 70px; margin: 0 auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); overflow: hidden; }
+    .sticker img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .sticker.N { border: 3px solid #b7c4d1; }
+    .sticker.R { border: 3px solid #a8b4c2; background: linear-gradient(135deg, #f5f7fa, #c3cfe2); box-shadow: 0 0 10px silver; }
     .sticker.SR { border: 3px solid #ffd700; background: linear-gradient(135deg, #fff9c4, #ffc107); box-shadow: 0 0 15px gold; }
-    .locked-sticker { background: rgba(0,0,0,0.1); font-size: 16px; color: rgba(0,0,0,0.2); border: 2px dashed #ccc; }
+    .sticker.SECRET { border: 3px solid #e056fd; background: linear-gradient(135deg, #dff9fb, #c7ceff); box-shadow: 0 0 18px #e056fd; }
+    .badge-name { color: #5b4636; font-size: 10px; font-weight: bold; line-height: 1.2; margin-top: 4px; overflow-wrap: anywhere; }
+    .rarity-label { font-size: 9px; font-weight: bold; color: #777; }
+    .locked-sticker { background: rgba(0,0,0,0.08); font-size: 25px; color: rgba(0,0,0,0.25); border: 2px dashed #c9bda8; }
 
     /* ド派手演出 */
     .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -121,9 +126,11 @@
     @keyframes confetti-pop { 0% { opacity: 0; } 22% { opacity: 1; } 100% { opacity: 0; transform: rotate(calc(var(--r) + 130deg)) translateY(-210px); } }
     
     .gacha-bg { background: rgba(0,0,0,0.8); pointer-events: auto; flex-direction: column; }
-    .gacha-item { font-size: 120px; animation: stamp 0.8s ease-out forwards; position: relative; width: 150px; height: 150px; }
+    .gacha-item { animation: stamp 0.8s ease-out forwards; position: relative; width: 150px; height: 150px; }
+    .gacha-item img { width: 100%; height: 100%; object-fit: contain; }
     .gacha-item.R::after { content: '✨'; position: absolute; font-size: 60px; top: -20px; right: -20px; animation: spin 3s linear infinite; }
     .gacha-item.SR::after { content: '🌟'; position: absolute; font-size: 80px; top: -30px; right: -30px; animation: spin 2s linear infinite; }
+    .gacha-item.SECRET::after { content: '💎'; position: absolute; font-size: 72px; top: -25px; right: -25px; animation: spin 1.6s linear infinite; }
     .gacha-title { color: white; font-size: 30px; margin-bottom: 20px; font-weight: bold; text-shadow: 0 0 10px gold; animation: bounce 0.5s infinite; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
 
@@ -178,23 +185,51 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    const ALL_STICKERS = [
-      "🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯",
-      "🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🦆",
-      "🦅","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋",
-      "🐌","🐞","🐜","🐢","🐍","🐙","🦑","🦐","🦞","🦀",
-      "🐡","🐠","🐟","🐬","🐳","🐋","🦈","🐊","🐅","🐆",
-      "🍎","🍌","🍇","🍓","🍉","🍊","🍋","🍈","🍒","🍑",
-      "🍔","🍕","🌭","🥪","🌮","🌯","🥗","🥘","🥫","🍝",
-      "🍜","🍲","🍛","🍣","🍱","🥟","🍤","🍙","🍚","🍘",
-      "🚗","🚕","🚙","🚌","🚎","🏎️","🚓","🚑","🚒","🚐",
-      "🚀","🛸","🛰️","👑","💎","🏆","🏅","🐉","👽","👻"
-    ].map((char, i) => {
-      let rarity = 'N';
-      if (i >= 60 && i < 90) rarity = 'R'; 
-      if (i >= 90) rarity = 'SR';          
-      return { id: i, char, rarity };
+    const ASSET_BASE = 'https://tt-sensei.github.io/edu-assets/';
+    const collectionLabels = {
+      animal: 'どうぶつ', dinosaur: 'きょうりゅう', fantasy: 'ファンタジー',
+      flower: 'おはな', fruit: 'くだもの', gem: 'ほうせき', insect: 'こんちゅう',
+      music: 'おんがく', 'sea-animal': 'うみのなかま', treasure: 'たからもの'
+    };
+    const rarityClass = rarity => rarity === 'super-rare' ? 'SR' : rarity === 'secret' ? 'SECRET' : rarity === 'rare' ? 'R' : 'N';
+    const makeCollectionBadge = (collection, rarity, slug) => ({
+      id: `${collection}-${rarity}-${slug}`,
+      name: `${collectionLabels[collection]}・${slug.replaceAll('-', ' ')}`,
+      rarity: rarityClass(rarity),
+      rarityName: rarity === 'super-rare' ? 'SUPER RARE' : rarity === 'secret' ? 'SECRET' : rarity === 'rare' ? 'RARE' : 'COMMON',
+      image: `${ASSET_BASE}assets/collections/${collection}/${rarity}/${slug}/badge.png`
     });
+    const collectionSets = {
+      animal: ['bear','cat','fox','hamster','panda','penguin','rabbit','shiba'],
+      dinosaur: ['ankylosaurus','brachiosaurus','parasaurolophus','pteranodon','spinosaurus','stegosaurus','triceratops','tyrannosaurus'],
+      fantasy: ['dragon','fairy','golem','griffin','phoenix','slime','unicorn','wizard-cat'],
+      flower: ['cherry-blossom','clover-flower','daisy','dandelion','hydrangea','morning-glory','sunflower','tulip'],
+      fruit: ['apple','banana','grape','orange','peach','pineapple','strawberry','watermelon']
+    };
+    const fullCollectionBadges = Object.entries(collectionSets).flatMap(([collection, commons]) => [
+      ...commons.map(slug => makeCollectionBadge(collection, 'common', slug)),
+      ...({
+        animal: ['hedgehog','koala','otter','squirrel'], dinosaur: ['dimetrodon','elasmosaurus','pachycephalosaurus','velociraptor'],
+        fantasy: ['kitsune-spirit','mermaid','pegasus','treasure-mimic'], flower: ['camellia','lavender','lily','rose'],
+        fruit: ['blueberry','cherry','mango','melon']
+      }[collection] || []).map(slug => makeCollectionBadge(collection, 'rare', slug)),
+      ...({
+        animal: ['lion','white-tiger'], dinosaur: ['king-t-rex','mosasaurus'], fantasy: ['celestial-dragon','moon-unicorn'],
+        flower: ['blue-rose','lotus'], fruit: ['dragon-fruit','star-fruit']
+      }[collection] || []).map(slug => makeCollectionBadge(collection, 'super-rare', slug)),
+      ...({
+        animal: ['unicorn-puppy'], dinosaur: ['cosmic-dino'], fantasy: ['ancient-guardian'],
+        flower: ['rainbow-flower'], fruit: ['rainbow-fruit']
+      }[collection] || []).map(slug => makeCollectionBadge(collection, 'secret', slug))
+    ]);
+    const extraCommon = {
+      gem: ['amethyst','aquamarine','citrine','emerald','garnet'],
+      insect: ['ant','bee','beetle','butterfly','dragonfly'],
+      music: ['drum','guitar-pick','maracas','microphone','music-note'],
+      'sea-animal': ['clownfish','crab','dolphin','jellyfish','octopus'],
+      treasure: ['coin-pouch','compass','gem-shard','gold-coin','golden-lock']
+    };
+    const ALL_BADGES = [...fullCollectionBadges, ...Object.entries(extraCommon).flatMap(([collection, slugs]) => slugs.map(slug => makeCollectionBadge(collection, 'common', slug)))];
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx;
@@ -429,7 +464,7 @@
     };
 
     const getSafeGears = () => { try { return parseInt(localStorage.getItem('gears')) || 0; } catch (e) { return 0; } };
-    const getSafeStickers = () => { try { const s = localStorage.getItem('unlockedStickers'); return s ? JSON.parse(s) : []; } catch (e) { return []; } };
+    const getSafeBadges = () => { try { const s = localStorage.getItem('unlockedBadges'); return s ? JSON.parse(s) : []; } catch (e) { return []; } };
     const getSafeHistory = () => { try { const h = localStorage.getItem('playHistory'); return h ? JSON.parse(h) : []; } catch (e) { return []; } };
 
     function App() {
@@ -437,7 +472,7 @@
       const [bgMode, setBgMode] = useState('bg-day');
       
       const [gears, setGears] = useState(getSafeGears);
-      const [unlockedStickers, setUnlockedStickers] = useState(getSafeStickers);
+      const [unlockedBadges, setUnlockedBadges] = useState(getSafeBadges);
       const [playHistory, setPlayHistory] = useState(getSafeHistory);
       
       const [combo, setCombo] = useState(0);
@@ -463,10 +498,10 @@
       useEffect(() => {
         try {
           localStorage.setItem('gears', gears);
-          localStorage.setItem('unlockedStickers', JSON.stringify(unlockedStickers));
+          localStorage.setItem('unlockedBadges', JSON.stringify(unlockedBadges));
           localStorage.setItem('playHistory', JSON.stringify(playHistory));
         } catch (e) {}
-      }, [gears, unlockedStickers, playHistory]);
+      }, [gears, unlockedBadges, playHistory]);
 
       useEffect(() => {
         if (view === 'home' || view === 'notebook' || view === 'record' || view === 'freemode') setBgMode('bg-day');
@@ -663,26 +698,29 @@
       };
 
       const spinGacha = (times = 1) => {
-        const cost = times * 10;
+        const cost = times === 10 ? 40 : 5;
         if (gears >= cost) {
           setGears(g => g - cost);
           let results = [];
-          let newUnlocked = [...unlockedStickers];
+          let newUnlocked = [...unlockedBadges];
           let hasSR = false;
 
           for (let i = 0; i < times; i++) {
             const r = Math.random(); let targetRarity = 'N';
-            if (r > 0.7 && r <= 0.95) targetRarity = 'R';
-            if (r > 0.95) targetRarity = 'SR';
-            const pool = ALL_STICKERS.filter(s => s.rarity === targetRarity);
-            const sticker = pool[Math.floor(Math.random() * pool.length)];
-            const isNew = !newUnlocked.includes(sticker.id);
-            if (isNew) newUnlocked.push(sticker.id);
-            results.push({ ...sticker, isNew });
-            if (targetRarity === 'SR') hasSR = true;
+            if (r > 0.62 && r <= 0.87) targetRarity = 'R';
+            if (r > 0.87 && r <= 0.97) targetRarity = 'SR';
+            if (r > 0.97) targetRarity = 'SECRET';
+            let pool = ALL_BADGES.filter(s => s.rarity === targetRarity);
+            let available = pool.filter(s => !newUnlocked.includes(s.id));
+            if (available.length && (times === 10 || Math.random() < 0.55)) pool = available;
+            const badge = pool[Math.floor(Math.random() * pool.length)];
+            const isNew = !newUnlocked.includes(badge.id);
+            if (isNew) newUnlocked.push(badge.id);
+            results.push({ ...badge, isNew });
+            if (targetRarity === 'SR' || targetRarity === 'SECRET') hasSR = true;
           }
           
-          setUnlockedStickers(newUnlocked);
+          setUnlockedBadges(newUnlocked);
           if (hasSR) sounds.gachaSR(); else sounds.gachaN();
           setGachaResult(results);
         } else {
@@ -692,7 +730,7 @@
 
       const resetGame = () => {
         if(window.confirm("ほんとうに データを ぜんぶ けしますか？")) {
-          localStorage.clear(); setGears(0); setUnlockedStickers([]); setPlayHistory([]); sounds.click();
+          localStorage.clear(); setGears(0); setUnlockedBadges([]); setPlayHistory([]); sounds.click();
         }
       };
 
@@ -759,17 +797,19 @@
             <div className="overlay gacha-bg" style={{ overflowY: 'auto', padding: '20px' }}>
               <div className="gacha-title">
                 {gachaResult.length === 1 
-                  ? (gachaResult[0].isNew ? (gachaResult[0].rarity === 'SR' ? '超・大アタリ！！' : gachaResult[0].rarity === 'R' ? '大アタリ！' : 'シールゲット！') : 'かぶり！(もう持ってるよ)')
+                  ? (gachaResult[0].isNew ? (gachaResult[0].rarity === 'SECRET' ? 'ひみつの大アタリ！！' : gachaResult[0].rarity === 'SR' ? '超・大アタリ！！' : gachaResult[0].rarity === 'R' ? '大アタリ！' : 'バッジゲット！') : 'かぶり！(もう持ってるよ)')
                   : '10連ガチャ 結果！'}
               </div>
               
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', maxWidth: '600px' }}>
                 {gachaResult.map((res, i) => (
                   <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div className={`sticker gacha-item ${res.rarity}`} style={gachaResult.length > 1 ? { width: '80px', height: '80px', fontSize: '50px' } : {}}>
-                      {res.char}
+                    <div className={`sticker gacha-item ${res.rarity}`} style={gachaResult.length > 1 ? { width: '80px', height: '80px' } : {}}>
+                      <img src={res.image} alt={res.name} />
                     </div>
-                    {gachaResult.length > 1 && res.isNew && <div style={{ color: '#ff4757', fontWeight: 'bold', fontSize: '12px', background: 'white', padding: '2px 5px', borderRadius: '5px', marginTop: '5px' }}>NEW</div>}
+                    <div style={{ color: 'white', fontWeight: 'bold', fontSize: '13px', textAlign: 'center', maxWidth: '110px' }}>{res.name}</div>
+                    <div style={{ color: '#ffeaa7', fontWeight: 'bold', fontSize: '11px' }}>{res.rarityName}</div>
+                    {res.isNew && <div style={{ color: '#ff4757', fontWeight: 'bold', fontSize: '12px', background: 'white', padding: '2px 5px', borderRadius: '5px', marginTop: '5px' }}>NEW</div>}
                   </div>
                 ))}
               </div>
@@ -806,7 +846,7 @@
                   ⏱️ 時計フリーモード <br/><small>自由に動かせるよ</small>
                 </button>
 
-                <button className="menu-btn btn-book" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>📖 シールてちょう<br/>({unlockedStickers.length}/100)</button>
+                <button className="menu-btn btn-book" onClick={() => { sounds.click(); setView('notebook'); setMessage(''); }}>📖 バッジてちょう<br/>({unlockedBadges.length}/{ALL_BADGES.length})</button>
                 <button className="menu-btn btn-record" onClick={() => { sounds.click(); setView('record'); setMessage(''); }}>🔍 たんていのきろく</button>
                 
                 <button className="menu-btn btn-reset" onClick={resetGame}>さいしょから (リセット)</button>
@@ -884,22 +924,27 @@
 
           {view === 'notebook' && (
             <div>
-              <h1>シールてちょう</h1>
+              <h1>バッジてちょう</h1>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', maxWidth: '500px', margin: '0 auto 15px auto' }}>
-                <button className="menu-btn btn-book" onClick={() => spinGacha(1)} disabled={gears < 10} style={{ padding: '15px', flex: 1 }}>
-                  {gears >= 10 ? '🎲 1回 (⚙️10)' : '⚙️が たりない'}
+                <button className="menu-btn btn-book" onClick={() => spinGacha(1)} disabled={gears < 5} style={{ padding: '15px', flex: 1 }}>
+                  {gears >= 5 ? '🎲 1回 (⚙️5)' : '⚙️が たりない'}
                 </button>
-                <button className="menu-btn btn-book" onClick={() => spinGacha(10)} disabled={gears < 100} style={{ padding: '15px', flex: 1, background: '#e55039', color: 'white' }}>
-                  {gears >= 100 ? '🎲 10連 (⚙️100)' : '⚙️が たりない'}
+                <button className="menu-btn btn-book" onClick={() => spinGacha(10)} disabled={gears < 40} style={{ padding: '15px', flex: 1, background: '#e55039', color: 'white' }}>
+                  {gears >= 40 ? '🎲 10連 (⚙️40)' : '⚙️が たりない'}
                 </button>
               </div>
 
               <div className="notebook">
-                <p style={{margin: '0 0 10px 0', fontWeight: 'bold'}}>あつめた数: {unlockedStickers.length} / 100</p>
+                <p style={{margin: '0 0 10px 0', fontWeight: 'bold'}}>あつめた数: {unlockedBadges.length} / {ALL_BADGES.length}</p>
+                <p style={{margin: '0 0 10px 0', fontSize: '12px', color: '#765'}}>COMMON 65　RARE 20　SUPER RARE 10　SECRET 5</p>
                 <div className="sticker-grid">
-                  {ALL_STICKERS.map((s) => {
-                    const unlocked = unlockedStickers.includes(s.id);
-                    return <div key={s.id} className={`sticker ${unlocked ? s.rarity : 'locked-sticker'}`}>{unlocked ? s.char : "？"}</div>;
+                  {ALL_BADGES.map((s) => {
+                    const unlocked = unlockedBadges.includes(s.id);
+                    return <div key={s.id} className="sticker-card">
+                      <div className={`sticker ${unlocked ? s.rarity : 'locked-sticker'}`}>{unlocked ? <img src={s.image} alt={s.name} /> : "？"}</div>
+                      <div className="badge-name">{unlocked ? s.name : '？？？'}</div>
+                      <div className="rarity-label">{s.rarityName}</div>
+                    </div>;
                   })}
                 </div>
               </div>
