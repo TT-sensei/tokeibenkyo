@@ -104,6 +104,10 @@
     .num-key:active { transform: translateY(4px); box-shadow: none; }
     .num-key.action { background: #74b9ff; color: white; box-shadow: 0 4px 0 #0984e3; }
     .num-key.submit { background: #00b894; color: white; box-shadow: 0 4px 0 #00b894; grid-column: span 3; }
+    .solve-layout { max-width: 1120px; margin: 0 auto; }
+    .solve-clock, .solve-panel { min-width: 0; }
+    .solve-panel { display: flex; flex-direction: column; align-items: stretch; }
+    .solve-panel .message-box, .solve-panel .clock-guide { width: 100%; max-width: none; }
 
     /* バッジ手帳 */
     .notebook { background: linear-gradient(145deg, #fffdf0, #fff4c2); border: 5px solid #ffcc80; border-radius: 18px; padding: 15px; max-width: 620px; margin: 0 auto; min-height: 200px; }
@@ -188,6 +192,28 @@
       .numpad-container { max-width: 350px; }
       .num-key { font-size: 24px; padding: 15px; }
     }
+    @media (min-width: 768px) {
+      .solve-layout { display: grid; grid-template-columns: minmax(330px, 0.9fr) minmax(390px, 1.1fr); gap: clamp(24px, 5vw, 70px); align-items: start; text-align: left; }
+      .solve-clock { display: flex; justify-content: center; padding-top: 18px; }
+      .solve-panel .message-box, .solve-panel .navi-feedback, .solve-panel .clock-guide, .solve-panel .btn-hint, .solve-panel .choices, .solve-panel .numpad-container { margin-left: 0; margin-right: 0; }
+      .solve-panel .navi-feedback { justify-content: flex-start; }
+      .solve-panel .choices { justify-content: flex-start; }
+      .solve-panel .numpad-container { max-width: none; padding: 12px; }
+      .solve-panel .numpad-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px; }
+      .solve-panel .num-key { font-size: 21px; padding: 9px 5px; min-height: 46px; }
+      .solve-panel .num-key.submit { grid-column: span 6; }
+      .solve-panel .btn-back { align-self: flex-start; }
+    }
+    @media (min-width: 768px) and (max-height: 800px) {
+      .solve-clock { padding-top: 0; }
+      .solve-panel .message-box { padding: 10px; margin-bottom: 7px; }
+      .solve-panel .navi-feedback { min-height: 44px; margin-bottom: 4px; }
+      .solve-panel .navi-feedback img { width: 44px; height: 44px; }
+      .solve-panel .clock-guide { padding: 7px; font-size: 15px; margin-bottom: 6px; }
+      .solve-panel .numpad-container { padding: 9px; }
+      .solve-panel .num-key { min-height: 40px; padding: 5px; }
+    }
+    @media (max-width: 767px) { .solve-layout { display: block; } }
     @media (min-width: 1100px) {
       .menu-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .btn-ta-read, .btn-ta-move, .btn-teacher, .btn-reset { grid-column: span 3; }
@@ -892,41 +918,46 @@
               <div className="status-bar" style={{marginBottom: '10px', background: '#ffeaa7', border: '2px solid #fdcb6e', color: '#d63031'}}>
                 クエスト: {Math.min(questionCount, MAX_QUESTIONS)} / {MAX_QUESTIONS} もんめ
               </div>
-              {feedback && <div className="navi-feedback"><img src={naviImage(naviCharacter, feedback.startsWith('せいかい') ? 'correct' : 'retry')} alt="" aria-hidden="true" /><span>{feedback}</span></div>}
-              <div className="message-box">{message}</div>
-              <Clock 
-                totalMinutes={isInteractiveMode ? interactiveMins : question.displayMinutes} 
-                showHint={showHint} 
-                interactive={isInteractiveMode}
-                onDrag={setInteractiveMins} 
-                step={5} 
-              />
-              
-              {isInteractiveMode && questionCount <= MAX_QUESTIONS && (
-                <div className="controls">
-                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-60); }}>⏪ 1じかん</button>
-                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-5); }}>◁ 5ふん</button>
-                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p+5); }}>5ふん ▷</button>
-                  <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p+60); }}>1じかん ⏩</button>
+              <div className="solve-layout">
+                <div className="solve-clock">
+                  <Clock 
+                    totalMinutes={isInteractiveMode ? interactiveMins : question.displayMinutes} 
+                    showHint={showHint} 
+                    interactive={isInteractiveMode}
+                    onDrag={setInteractiveMins} 
+                    step={5} 
+                  />
                 </div>
-              )}
+                <div className="solve-panel">
+                  {feedback && <div className="navi-feedback"><img src={naviImage(naviCharacter, feedback.startsWith('せいかい') ? 'correct' : 'retry')} alt="" aria-hidden="true" /><span>{feedback}</span></div>}
+                  <div className="message-box">{message}</div>
+                  {isInteractiveMode && questionCount <= MAX_QUESTIONS && (
+                    <div className="controls">
+                      <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-60); }}>⏪ 1じかん</button>
+                      <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p-5); }}>◁ 5ふん</button>
+                      <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p+5); }}>5ふん ▷</button>
+                      <button className="control-btn" onClick={() => { sounds.tick(); setInteractiveMins(p=>p+60); }}>1じかん ⏩</button>
+                    </div>
+                  )}
 
-              {showHint && modeParams && modeParams.type === 'read' && <div className="clock-guide"><span className="hour-word">① みじかい はり＝じ</span> を見る。<br/><span className="minute-word">② ながい はり＝ふん</span> を 5とびで数える。</div>}
-              {!showHint && questionCount <= MAX_QUESTIONS && <button className="btn-hint" onClick={useHint}>💡 ヒントをみる（何回でも無料）</button>}
+                  {showHint && modeParams && modeParams.type === 'read' && <div className="clock-guide"><span className="hour-word">① みじかい はり＝じ</span> を見る。<br/><span className="minute-word">② ながい はり＝ふん</span> を 5とびで数える。</div>}
+                  {!showHint && questionCount <= MAX_QUESTIONS && <button className="btn-hint" onClick={useHint}>💡 ヒントをみる（何回でも無料）</button>}
 
-              {modeParams && modeParams.type === 'read' && modeParams.lv <= 1 && question.choices && questionCount <= MAX_QUESTIONS && (
-                <div className="choices">
-                  {question.choices.map((c, i) => (
-                    <button key={i} className="choice-btn" onClick={() => { sounds.click(); checkReadLv1(c.h, c.m); }}>{c.h}じ {c.m}ふん</button>
-                  ))}
+                  {modeParams && modeParams.type === 'read' && modeParams.lv <= 1 && question.choices && questionCount <= MAX_QUESTIONS && (
+                    <div className="choices">
+                      {question.choices.map((c, i) => (
+                        <button key={i} className="choice-btn" onClick={() => { sounds.click(); checkReadLv1(c.h, c.m); }}>{c.h}じ {c.m}ふん</button>
+                      ))}
+                    </div>
+                  )}
+
+                  {modeParams && modeParams.type === 'read' && modeParams.lv >= 2 && questionCount <= MAX_QUESTIONS && <Numpad key={question.id} onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />}
+                  {isInteractiveMode && questionCount <= MAX_QUESTIONS && <button className="choice-btn" onClick={() => { sounds.click(); checkInteractive(); }}>これだ！</button>}
+                  {modeParams && modeParams.type === 'move' && modeParams.lv >= 2 && questionCount <= MAX_QUESTIONS && <Numpad key={question.id} onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />}
+
+                  <button className="btn-back" onClick={() => { sounds.click(); saveSessionAndGoHome(); }}>途中でやめる</button>
                 </div>
-              )}
-
-              {modeParams && modeParams.type === 'read' && modeParams.lv >= 2 && questionCount <= MAX_QUESTIONS && <Numpad key={question.id} onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />}
-              {isInteractiveMode && questionCount <= MAX_QUESTIONS && <button className="choice-btn" onClick={() => { sounds.click(); checkInteractive(); }}>これだ！</button>}
-              {modeParams && modeParams.type === 'move' && modeParams.lv >= 2 && questionCount <= MAX_QUESTIONS && <Numpad key={question.id} onSubmit={(h, m) => { sounds.click(); checkNumpad(h, m); }} />}
-
-              <button className="btn-back" onClick={() => { sounds.click(); saveSessionAndGoHome(); }}>途中でやめる</button>
+              </div>
             </div>
           )}
 
@@ -935,24 +966,27 @@
               <div className="status-bar" style={{marginBottom: '10px'}}>
                 のこり {timeLeft}びょう　せいかい {score}もん
               </div>
-              <div className="message-box ta-question">{question.text}</div>
-              <Clock totalMinutes={question.displayMinutes} showHint={false} />
-
-              {timeLeft > 0 ? (
-                <Numpad key={question.id} onSubmit={handleTaAnswer} />
-              ) : (
-                <div>
-                  <div className="message-box">おわり！ せいかい {score}もん<br/>{score >= 5 ? '🎉 5問以上ボーナス ＋10！ 🎉' : ''}</div>
-                  <button
-                    className={`menu-btn ${modeParams.type === 'move' ? 'btn-ta-move' : 'btn-ta-read'}`}
-                    style={{ fontSize: '20px', padding: '15px' }}
-                    onClick={() => { sounds.click(); const info = getTaRewardInfo(); setGears(g => g + info.total); saveSessionAndGoHome(); }}
-                  >
-                    ほうしゅうをもらう (⚙️{getTaRewardInfo().total})
-                  </button>
+              <div className="solve-layout">
+                <div className="solve-clock"><Clock totalMinutes={question.displayMinutes} showHint={false} /></div>
+                <div className="solve-panel">
+                  <div className="message-box ta-question">{question.text}</div>
+                  {timeLeft > 0 ? (
+                    <Numpad key={question.id} onSubmit={handleTaAnswer} />
+                  ) : (
+                    <div>
+                      <div className="message-box">おわり！ せいかい {score}もん<br/>{score >= 5 ? '🎉 5問以上ボーナス ＋10！ 🎉' : ''}</div>
+                      <button
+                        className={`menu-btn ${modeParams.type === 'move' ? 'btn-ta-move' : 'btn-ta-read'}`}
+                        style={{ fontSize: '20px', padding: '15px' }}
+                        onClick={() => { sounds.click(); const info = getTaRewardInfo(); setGears(g => g + info.total); saveSessionAndGoHome(); }}
+                      >
+                        ほうしゅうをもらう (⚙️{getTaRewardInfo().total})
+                      </button>
+                    </div>
+                  )}
+                  {timeLeft > 0 && <button className="btn-back" onClick={() => { sounds.click(); if (timerRef.current) clearInterval(timerRef.current); saveSessionAndGoHome(); }}>やめる</button>}
                 </div>
-              )}
-              {timeLeft > 0 && <button className="btn-back" onClick={() => { sounds.click(); if (timerRef.current) clearInterval(timerRef.current); saveSessionAndGoHome(); }}>やめる</button>}
+              </div>
             </div>
           )}
 
