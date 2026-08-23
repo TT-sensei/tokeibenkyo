@@ -179,13 +179,14 @@
     .btn-close-record:active { transform: translateY(4px); box-shadow: none; }
 
     @media (min-width: 768px) {
-      .home-shell { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); column-gap: clamp(24px, 5vw, 72px); align-items: center; min-height: calc(100vh - 145px); }
-      .home-intro { max-width: 460px; margin: 0; padding-right: 104px; box-sizing: border-box; }
-      .home-intro h1 { font-size: clamp(34px, 4vw, 52px); }
-      .home-nav { width: 112px; height: 145px; right: 0; }
-      .menu-grid { max-width: none; gap: 15px; }
-      .menu-btn { font-size: 18px; padding: 20px 10px; min-height: 78px; }
-      .btn-ta-read, .btn-ta-move { font-size: 20px; }
+      .home-shell { max-width: 1280px; display: flex; flex-direction: column; align-items: stretch; min-height: calc(100vh - 145px); gap: clamp(10px, 2vh, 22px); }
+      .home-intro { max-width: 760px; width: 100%; margin: 0 auto; padding-right: 104px; box-sizing: border-box; }
+      .home-intro h1 { font-size: clamp(34px, 4vw, 52px); margin-top: 0; }
+      .home-intro p { font-size: clamp(14px, 1.7vw, 19px); }
+      .home-nav { width: 104px; height: 132px; right: 6px; bottom: -12px; }
+      .menu-grid { width: 100%; max-width: 1120px; gap: clamp(10px, 1.4vw, 18px); margin: 0 auto; }
+      .menu-btn { font-size: clamp(16px, 1.7vw, 20px); padding: 14px 10px; min-height: 70px; }
+      .btn-ta-read, .btn-ta-move { font-size: clamp(17px, 1.8vw, 21px); }
       .clock-container { width: 300px; height: 300px; margin: 20px auto; }
       h1 { font-size: 34px; margin-bottom: 20px; }
       .message-box { font-size: 22px; max-width: 500px; padding: 15px; }
@@ -214,9 +215,14 @@
       .solve-panel .num-key { min-height: 40px; padding: 5px; }
     }
     @media (max-width: 767px) { .solve-layout { display: block; } }
-    @media (min-width: 1100px) {
+    @media (min-width: 768px) and (max-width: 1099px) {
       .menu-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .btn-ta-read, .btn-ta-move, .btn-teacher, .btn-reset { grid-column: span 3; }
+    }
+    @media (min-width: 1100px) {
+      .menu-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .btn-ta-read, .btn-ta-move, .btn-teacher { grid-column: span 2; }
+      .btn-reset { grid-column: span 4; margin-top: 2px; }
     }
     @media (max-width: 767px) { .home-nav { display: none; } }
   </style>
