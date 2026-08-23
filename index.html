@@ -446,8 +446,8 @@
           </div>
           <div className="numpad-grid">
             {[1,2,3,4,5,6,7,8,9].map(n => <button key={n} className="num-key" onClick={() => handleKey(n)}>{n}</button>)}
-            <button className="num-key action" onClick={() => handleKey('C')}>C</button>
             <button className="num-key" onClick={() => handleKey(0)}>0</button>
+            <button className="num-key action" onClick={() => handleKey('C')}>×</button>
             <button className="num-key action" onClick={() => setActiveField(activeField === 'H'?'M':'H')}>→</button>
             <button className="num-key submit" onClick={() => onSubmit(parseInt(h||0), parseInt(m||0))}>これだ！</button>
           </div>
