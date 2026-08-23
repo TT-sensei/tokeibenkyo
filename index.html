@@ -14,7 +14,7 @@
     body { margin: 0; overflow-x: hidden; touch-action: manipulation; user-select: none; }
     .app-container {
       text-align: center; font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', sans-serif;
-      min-height: 100vh; padding: 15px; color: #333; transition: background 1s ease;
+      min-height: 100vh; padding: clamp(14px, 2.4vw, 30px); color: #333; transition: background 1s ease;
     }
     .bg-morning { background: linear-gradient(to bottom, #8ee4af, #edf5e1); }
     .bg-day { background: linear-gradient(to bottom, #74b9ff, #dfe6e9); }
@@ -30,7 +30,12 @@
     .combo-text { color: #ff4757; animation: bounce 0.5s infinite alternate; }
 
     /* ホーム画面のオシャレなボタン群 */
-    .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 500px; margin: 0 auto; }
+    .home-shell { max-width: 1180px; margin: 0 auto; }
+    .home-intro { position: relative; max-width: 760px; margin: 0 auto 18px; }
+    .home-intro h1 { margin-bottom: 4px; }
+    .home-intro p { margin: 0; color: rgba(255,255,255,.92); font-weight: bold; font-size: clamp(14px, 1.8vw, 19px); }
+    .home-nav { position: absolute; right: clamp(0px, 2vw, 28px); bottom: -5px; width: 92px; height: 118px; object-fit: contain; object-position: bottom; pointer-events: none; filter: drop-shadow(0 4px 3px rgba(0,0,0,.18)); }
+    .menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 760px; margin: 0 auto; }
     .menu-btn {
       border: none; border-radius: 15px; padding: 15px 5px; font-size: 16px; font-weight: bold;
       color: white; cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.2); transition: transform 0.1s;
@@ -49,6 +54,8 @@
     .btn-book { background: #f6b93b; font-size: 18px; color: #333; }
     .btn-record { background: #f39c12; font-size: 18px; color: #fff; }
     .btn-reset { background: #7f8c8d; grid-column: span 2; padding: 10px; font-size: 14px; margin-top: 20px;}
+    .navi-feedback { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 52px; margin: 0 auto 8px; color: #2d3436; font-weight: bold; font-size: 17px; }
+    .navi-feedback img { width: 52px; height: 52px; object-fit: contain; }
     
     /* 時計周り */
     .clock-container {
@@ -168,8 +175,12 @@
     .btn-close-record:active { transform: translateY(4px); box-shadow: none; }
 
     @media (min-width: 768px) {
-      .menu-grid { max-width: 600px; gap: 15px; }
-      .menu-btn { font-size: 18px; padding: 20px 10px; }
+      .home-shell { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); column-gap: clamp(24px, 5vw, 72px); align-items: center; min-height: calc(100vh - 145px); }
+      .home-intro { max-width: 460px; margin: 0; }
+      .home-intro h1 { font-size: clamp(34px, 4vw, 52px); }
+      .home-nav { width: 112px; height: 145px; right: 0; }
+      .menu-grid { max-width: none; gap: 15px; }
+      .menu-btn { font-size: 18px; padding: 20px 10px; min-height: 78px; }
       .btn-ta-read, .btn-ta-move { font-size: 20px; }
       .clock-container { width: 300px; height: 300px; margin: 20px auto; }
       h1 { font-size: 34px; margin-bottom: 20px; }
@@ -177,6 +188,11 @@
       .numpad-container { max-width: 350px; }
       .num-key { font-size: 24px; padding: 15px; }
     }
+    @media (min-width: 1100px) {
+      .menu-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .btn-ta-read, .btn-ta-move, .btn-teacher, .btn-reset { grid-column: span 3; }
+    }
+    @media (max-width: 767px) { .home-nav { display: none; } }
   </style>
 </head>
 <body>
@@ -186,6 +202,10 @@
     const { useState, useEffect, useRef, useCallback } = React;
 
     const ASSET_BASE = 'https://tt-sensei.github.io/edu-assets/';
+    const NAVI_BASE = 'https://tt-sensei.github.io/navi-character-/assets/web/characters/';
+    const naviImage = (character, pose) => `${NAVI_BASE}${character}/fullbody/${pose}.webp`;
+    const naviPool = ['riku', 'sora', 'kai', 'saku', 'tsuki', 'nami'];
+    const randomNavi = () => naviPool[Math.floor(Math.random() * naviPool.length)];
     const collectionLabels = {
       animal: 'どうぶつ', dinosaur: 'きょうりゅう', fantasy: 'ファンタジー',
       flower: 'おはな', fruit: 'くだもの', gem: 'ほうせき', insect: 'こんちゅう',
@@ -197,7 +217,7 @@
       name: `${collectionLabels[collection]}・${slug.replaceAll('-', ' ')}`,
       rarity: rarityClass(rarity),
       rarityName: rarity === 'super-rare' ? 'SUPER RARE' : rarity === 'secret' ? 'SECRET' : rarity === 'rare' ? 'RARE' : 'COMMON',
-      image: `${ASSET_BASE}assets/collections/${collection}/${rarity}/${slug}/badge.png`
+      image: `${ASSET_BASE}assets/web/collections/${collection}/${rarity}/${slug}/badge.webp`
     });
     const collectionSets = {
       animal: ['bear','cat','fox','hamster','panda','penguin','rabbit','shiba'],
@@ -231,11 +251,14 @@
     };
     const ALL_BADGES = [...fullCollectionBadges, ...Object.entries(extraCommon).flatMap(([collection, slugs]) => slugs.map(slug => makeCollectionBadge(collection, 'common', slug)))];
 
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
     let audioCtx;
     const playTone = (freq, type, duration, startTimeOffset, vol=0.1) => {
-      if (!audioCtx) audioCtx = new AudioContext();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (!AudioContextCtor) return;
+      try {
+        if (!audioCtx) audioCtx = new AudioContextCtor();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+      } catch (e) { return; }
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime + startTimeOffset);
@@ -488,6 +511,8 @@
       const [showHint, setShowHint] = useState(false);
       const [interactiveMins, setInteractiveMins] = useState(0);
       const [gachaResult, setGachaResult] = useState(null);
+      const [naviCharacter, setNaviCharacter] = useState(randomNavi());
+      const [feedback, setFeedback] = useState('');
       
       const [timeLeft, setTimeLeft] = useState(0);
       const [score, setScore] = useState(0);
@@ -535,6 +560,8 @@
 
       const triggerSuccess = () => {
         sounds.correct();
+        setNaviCharacter(randomNavi());
+        setFeedback('せいかい！そのちょうし！');
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 1200);
       };
@@ -576,6 +603,8 @@
 
       const handleMistake = () => {
         sounds.wrong();
+        setNaviCharacter(randomNavi());
+        setFeedback('だいじょうぶ。もういちど！');
         setCombo(0);
         const newMistakes = mistakes + 1;
         
@@ -805,7 +834,7 @@
                 {gachaResult.map((res, i) => (
                   <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <div className={`sticker gacha-item ${res.rarity}`} style={gachaResult.length > 1 ? { width: '80px', height: '80px' } : {}}>
-                      <img src={res.image} alt={res.name} />
+                      <img src={res.image} alt={res.name} onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = res.image.replace('/assets/web/', '/assets/'); }} />
                     </div>
                     <div style={{ color: 'white', fontWeight: 'bold', fontSize: '13px', textAlign: 'center', maxWidth: '110px' }}>{res.name}</div>
                     <div style={{ color: '#ffeaa7', fontWeight: 'bold', fontSize: '11px' }}>{res.rarityName}</div>
@@ -825,8 +854,12 @@
           )}
           
           {view === 'home' && (
-            <div>
-              <h1>じかんたんてい</h1>
+            <div className="home-shell">
+              <div className="home-intro">
+                <img className="home-nav" src={naviImage(naviCharacter, 'waving')} alt="" aria-hidden="true" />
+                <h1>じかんたんてい</h1>
+                <p>とけいを よんで、じかんの なぞを とこう！</p>
+              </div>
               <div className="menu-grid">
                 <button className="menu-btn btn-easy" onClick={() => startGame('read', 0, 1)}>🐣 やさしい<br/><small>(⚙️1)</small></button>
                 <button className="menu-btn btn-read1" onClick={() => startGame('read', 1, 2)}>🥉 よむ Lv1<br/><small>(3択/⚙️2)</small></button>
@@ -859,6 +892,7 @@
               <div className="status-bar" style={{marginBottom: '10px', background: '#ffeaa7', border: '2px solid #fdcb6e', color: '#d63031'}}>
                 クエスト: {Math.min(questionCount, MAX_QUESTIONS)} / {MAX_QUESTIONS} もんめ
               </div>
+              {feedback && <div className="navi-feedback"><img src={naviImage(naviCharacter, feedback.startsWith('せいかい') ? 'correct' : 'retry')} alt="" aria-hidden="true" /><span>{feedback}</span></div>}
               <div className="message-box">{message}</div>
               <Clock 
                 totalMinutes={isInteractiveMode ? interactiveMins : question.displayMinutes} 
@@ -941,7 +975,7 @@
                   {ALL_BADGES.map((s) => {
                     const unlocked = unlockedBadges.includes(s.id);
                     return <div key={s.id} className="sticker-card">
-                      <div className={`sticker ${unlocked ? s.rarity : 'locked-sticker'}`}>{unlocked ? <img src={s.image} alt={s.name} /> : "？"}</div>
+                      <div className={`sticker ${unlocked ? s.rarity : 'locked-sticker'}`}>{unlocked ? <img src={s.image} alt={s.name} onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = s.image.replace('/assets/web/', '/assets/').replace('.webp', '.png'); }} /> : "？"}</div>
                       <div className="badge-name">{unlocked ? s.name : '？？？'}</div>
                       <div className="rarity-label">{s.rarityName}</div>
                     </div>;
